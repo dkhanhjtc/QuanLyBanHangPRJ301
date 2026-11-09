@@ -388,7 +388,7 @@
           <select id="modalProductSupplier" name="supplierId" class="form-select" style="width: 100%;">
             <option value="">-- Chọn Nhà cung cấp / Xưởng may liên kết --</option>
             <c:forEach items="${suppliers}" var="sup">
-              <option value="${sup.supplierId}">${sup.supplierName} (${sup.supplierCode}) · ${sup.contactPerson} - ${sup.phone}</option>
+              <option value="${sup.supplierId}">${sup.supplierName} (${sup.supplierCode})<c:if test="${not empty sup.contactPhone}"> · SĐT: ${sup.contactPhone}</c:if></option>
             </c:forEach>
           </select>
         </div>

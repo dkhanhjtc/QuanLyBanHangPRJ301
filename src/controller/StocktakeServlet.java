@@ -54,6 +54,11 @@ public class StocktakeServlet extends HttpServlet {
 
         // 2. Xem danh sách phân công kiểm kê định kỳ
         List<Stocktake> list = stocktakeDAO.getAllStocktakes();
+        
+        // Nạp chi tiết các mặt hàng cho từng đợt kiểm kê
+        for (Stocktake s : list) {
+            s.setItems(stocktakeDAO.getStocktakeItems(s.getId()));
+        }
         request.setAttribute("stocktakes", list);
 
         int openCount = 0;
@@ -70,22 +75,6 @@ public class StocktakeServlet extends HttpServlet {
         request.setAttribute("openCount", openCount);
         request.setAttribute("reviewCount", reviewCount);
         request.setAttribute("overdueCount", overdueCount);
-
-        // Nạp sẵn phiếu chờ đối soát (ưu tiên KK-101 hoặc phiếu COUNTED/REVIEW đầu tiên)
-        Stocktake reconcileStocktake = stocktakeDAO.getStocktakeByCode("KK-101");
-        if (reconcileStocktake == null) {
-            for (Stocktake s : list) {
-                String stat = s.getStatus() != null ? s.getStatus().toUpperCase() : "";
-                if ("REVIEW".equals(stat) || "COUNTED".equals(stat)) {
-                    reconcileStocktake = stocktakeDAO.getStocktakeById(s.getId());
-                    break;
-                }
-            }
-        }
-        if (reconcileStocktake == null && !list.isEmpty()) {
-            reconcileStocktake = stocktakeDAO.getStocktakeById(list.get(0).getId());
-        }
-        request.setAttribute("reconcileStocktake", reconcileStocktake);
 
         request.getRequestDispatcher("/views/stocktakes.jsp").forward(request, response);
     }

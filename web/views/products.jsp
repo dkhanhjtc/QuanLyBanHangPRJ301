@@ -165,7 +165,7 @@
                           </c:choose>
                         </td>
                         <td style="text-align: right;">
-                          <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('${p.sku}', '${p.name}', '${p.category}', '${p.unit}', '${p.costPrice}', '${p.price}', '${p.stockQuantity}', '${p.minStock}', '${p.imageUrl != null ? p.imageUrl : (p.sku + \".svg\")}')" title="Chỉnh sửa">
+                          <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('${p.sku}', '${p.name}', '${p.category}', '${p.unit}', '${p.costPrice}', '${p.price}', '${p.stockQuantity}', '${p.minStock}', '${not empty p.imageUrl ? p.imageUrl : ''}')" title="Chỉnh sửa">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                           </button>
                         </td>

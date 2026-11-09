@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#e0f2fe"/>
+  <rect x="40" y="40" width="320" height="220" rx="16" fill="#ffffff" opacity="0.9"/>
+  <text x="200" y="130" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="54" text-anchor="middle">🥛</text>
+  <text x="200" y="180" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700" fill="#0369a1" text-anchor="middle">Sữa yến mạch</text>
+  <text x="200" y="215" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" fill="#64748b" text-anchor="middle">MK01</text>
+</svg>

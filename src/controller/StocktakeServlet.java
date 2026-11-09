@@ -2,8 +2,11 @@ package controller;
 
 import dal.ActivityLogDAO;
 import dal.StocktakeDAO;
+import dal.StockTransactionDAO;
+import dal.SystemNotificationDAO;
 import model.ActivityLog;
 import model.Stocktake;
+import model.StocktakeItem;
 import model.User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -19,6 +22,8 @@ public class StocktakeServlet extends HttpServlet {
 
     private final StocktakeDAO stocktakeDAO = new StocktakeDAO();
     private final ActivityLogDAO logDAO = new ActivityLogDAO();
+    private final StockTransactionDAO stockTransactionDAO = new StockTransactionDAO();
+    private final SystemNotificationDAO notificationDAO = new SystemNotificationDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -94,7 +99,29 @@ public class StocktakeServlet extends HttpServlet {
 
         // Duyệt điều chỉnh tồn kho theo số đếm thực tế
         if ("approve".equalsIgnoreCase(action) && stocktakeId > 0) {
+            Stocktake stBefore = stocktakeDAO.getStocktakeById(stocktakeId);
+            List<StocktakeItem> items = stocktakeDAO.getStocktakeItems(stocktakeId);
+
             stocktakeDAO.approveStocktake(stocktakeId);
+
+            // Ghi nhận biến động thẻ kho StockTransactions cho từng mặt hàng có chênh lệch
+            if (items != null) {
+                for (StocktakeItem item : items) {
+                    if (item.getVariance() != 0) {
+                        int prodIntId = 0;
+                        try { prodIntId = Integer.parseInt(item.getProductId()); } catch (Exception ignored) {}
+                        stockTransactionDAO.logTransaction(prodIntId, item.getVariance(), 
+                            item.getSystemStock(), item.getActualStock(), "STOCKTAKE_ADJUST", 
+                            (code != null ? code : ("KK-" + stocktakeId)), userId, 
+                            "Cân đối kiểm kê lệch " + item.getVariance() + " (" + (code != null ? code : "Phiếu KK") + ")");
+                    }
+                }
+            }
+
+            // Tạo thông báo thông minh
+            notificationDAO.createNotification(null, "Kiểm kê đã được chốt duyệt", 
+                "Đợt kiểm kê " + (code != null ? code : ("ID " + stocktakeId)) + " đã được hoàn tất bởi " + userName + ".", 
+                "STOCKTAKE_APPROVED", "stocktakes");
 
             logDAO.log(new ActivityLog(0, userId, userName, "Duyệt đối soát kiểm kê", 
                 "Cân bằng tồn kho thực tế cho phiếu " + (code != null ? code : ("ID " + stocktakeId)), 

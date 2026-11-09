@@ -39,6 +39,14 @@ public class PosServlet extends HttpServlet {
         List<Product> lowStockProducts = productDAO.getLowStockProducts();
         request.setAttribute("lowStockProducts", lowStockProducts);
 
+        // Lấy thông báo thông minh cho nhân viên thu ngân
+        dal.SystemNotificationDAO notificationDAO = new dal.SystemNotificationDAO();
+        HttpSession session = request.getSession(false);
+        User currentUser = (session != null) ? (User) session.getAttribute("user") : null;
+        Integer currentUserId = (currentUser != null) ? currentUser.getId() : null;
+        request.setAttribute("notifications", notificationDAO.getNotificationsForUser(currentUserId, 5));
+        request.setAttribute("unreadNotificationCount", notificationDAO.getUnreadCount(currentUserId));
+
         // Lấy danh sách đơn hàng trong ngày/ca
         List<Order> shiftOrders = orderDAO.getTodayOrders();
         request.setAttribute("shiftOrders", shiftOrders);

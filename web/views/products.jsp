@@ -359,9 +359,19 @@
               <option value="Khác">Phụ kiện / Khác</option>
             </select>
           </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
           <div class="form-group">
             <label class="form-label" for="modalProductUnit">Đơn vị tính</label>
             <input type="text" id="modalProductUnit" name="unit" class="form-input" placeholder="Ví dụ: Cái, Bộ, Chiếc">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modalProductSupplier">Nhà cung cấp / Xưởng may</label>
+            <select id="modalProductSupplier" name="supplierId" class="form-select">
+              <option value="">-- Chọn Nhà cung cấp --</option>
+              <c:forEach items="${suppliers}" var="sup">
+                <option value="${sup.supplierId}">${sup.supplierName} (${sup.supplierCode})</option>
+              </c:forEach>
+            </select>
           </div>
         </div>
 

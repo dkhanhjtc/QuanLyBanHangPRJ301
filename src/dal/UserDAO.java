@@ -11,27 +11,23 @@ import java.util.List;
 public class UserDAO extends DBContext {
 
     /**
-     * Xác thực thông tin đăng nhập theo mã đăng nhập (hoặc số điện thoại) và mật khẩu plain-text.
-     * Chỉ cho phép đăng nhập nếu tài khoản đang kích hoạt (isActive = 1).
-     * @param loginCodeOrPhone Mã đăng nhập (ví dụ AN-QL-001) hoặc Số điện thoại (ví dụ 0909876543)
-     * @param password Mật khẩu chuỗi thông thường (plain text)
-     * @return User nếu thông tin chính xác và tài khoản active, ngược lại trả về null
+     * Xác thực thông tin đăng nhập theo số điện thoại và passcode.
+     * Tương thích hoàn toàn với schema mới QuanLyBanHangThoiTrang (user_id, phone, passcode, full_name, role, status).
      */
     public User login(String loginCodeOrPhone, String password) {
-        String sql = "SELECT id, loginCode, phone, fullName, password, role, isActive, createdAt " +
+        String sql = "SELECT user_id, phone, full_name, passcode, role, status, created_at " +
                      "FROM Users " +
-                     "WHERE (loginCode = ? OR phone = ? OR REPLACE(phone, ' ', '') = ?) " +
-                     "  AND password = ? " +
-                     "  AND isActive = 1";
+                     "WHERE (phone = ? OR REPLACE(phone, ' ', '') = ?) " +
+                     "  AND passcode = ? " +
+                     "  AND status = 'ACTIVE'";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             String cleanPhone = loginCodeOrPhone != null ? loginCodeOrPhone.replace(" ", "") : "";
             ps.setString(1, loginCodeOrPhone);
-            ps.setString(2, loginCodeOrPhone);
-            ps.setString(3, cleanPhone);
-            ps.setString(4, password);
+            ps.setString(2, cleanPhone);
+            ps.setString(3, password);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -50,8 +46,8 @@ public class UserDAO extends DBContext {
      */
     public List<User> getAllUsers() {
         List<User> list = new ArrayList<>();
-        String sql = "SELECT id, loginCode, phone, fullName, password, role, isActive, createdAt " +
-                     "FROM Users ORDER BY id ASC";
+        String sql = "SELECT user_id, phone, full_name, passcode, role, status, created_at " +
+                     "FROM Users ORDER BY user_id ASC";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
@@ -72,8 +68,8 @@ public class UserDAO extends DBContext {
      * @return User đối tượng người dùng hoặc null
      */
     public User getUserById(int userId) {
-        String sql = "SELECT id, loginCode, phone, fullName, password, role, isActive, createdAt " +
-                     "FROM Users WHERE id = ?";
+        String sql = "SELECT user_id, phone, full_name, passcode, role, status, created_at " +
+                     "FROM Users WHERE user_id = ?";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -91,12 +87,10 @@ public class UserDAO extends DBContext {
     }
 
     /**
-     * Chuyển đổi trạng thái hoạt động của người dùng (kích hoạt <-> thu hồi)
-     * @param userId ID người dùng cần đổi trạng thái
-     * @return true nếu cập nhật thành công, false nếu thất bại
+     * Khóa hoặc mở khóa tài khoản
      */
     public boolean toggleUserStatus(int userId) {
-        String sql = "UPDATE Users SET isActive = CASE WHEN isActive = 1 THEN 0 ELSE 1 END WHERE id = ?";
+        String sql = "UPDATE Users SET status = CASE WHEN status = 'ACTIVE' THEN 'REVOKED' ELSE 'ACTIVE' END WHERE user_id = ?";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -111,17 +105,14 @@ public class UserDAO extends DBContext {
 
     /**
      * Cập nhật vai trò người dùng (ADMIN, MANAGER, STAFF)
-     * @param userId ID người dùng
-     * @param role Vai trò mới
-     * @return true nếu cập nhật thành công, false nếu thất bại
      */
     public boolean updateRole(int userId, String role) {
-        String sql = "UPDATE Users SET role = ? WHERE id = ?";
+        String sql = "UPDATE Users SET role = ? WHERE user_id = ?";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setString(1, role.toUpperCase());
+            ps.setString(1, role != null ? role.toUpperCase() : "STAFF");
             ps.setInt(2, userId);
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -132,22 +123,19 @@ public class UserDAO extends DBContext {
 
     /**
      * Thêm tài khoản người dùng mới
-     * @param u Đối tượng người dùng
-     * @return true nếu thêm thành công, false nếu thất bại
      */
     public boolean addUser(User u) {
-        String sql = "INSERT INTO Users (loginCode, phone, fullName, password, role, isActive, createdAt) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
+        String sql = "INSERT INTO Users (phone, passcode, full_name, role, status, created_at) " +
+                     "VALUES (?, ?, ?, ?, ?, GETDATE())";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setString(1, u.getLoginCode());
-            ps.setString(2, u.getPhone());
+            ps.setString(1, u.getPhone());
+            ps.setString(2, u.getPassword());
             ps.setString(3, u.getFullName());
-            ps.setString(4, u.getPassword());
-            ps.setString(5, u.getRole().toUpperCase());
-            ps.setBoolean(6, u.isIsActive());
+            ps.setString(4, u.getRole() != null ? u.getRole().toUpperCase() : "STAFF");
+            ps.setString(5, u.isIsActive() ? "ACTIVE" : "REVOKED");
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -156,15 +144,14 @@ public class UserDAO extends DBContext {
     }
 
     private User mapUser(ResultSet rs) throws Exception {
-        int id = rs.getInt("id");
-        String loginCode = rs.getString("loginCode");
+        int id = rs.getInt("user_id");
         String phone = rs.getString("phone");
-        String fullName = rs.getString("fullName");
-        String password = rs.getString("password");
+        String fullName = rs.getString("full_name");
+        String password = rs.getString("passcode");
         String role = rs.getString("role");
-        boolean isActive = rs.getBoolean("isActive");
-        Timestamp createdAt = rs.getTimestamp("createdAt");
-        return new User(id, loginCode, phone, fullName, password, role, isActive, createdAt);
+        String status = rs.getString("status");
+        boolean isActive = "ACTIVE".equalsIgnoreCase(status);
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        return new User(id, phone, phone, fullName, password, role, isActive, createdAt);
     }
 }
-

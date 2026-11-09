@@ -50,10 +50,14 @@
 <body>
 
 <div class="app-container">
-  <jsp:include page="/common/sidebar.jsp" />
+  <jsp:include page="/common/sidebar.jsp">
+    <jsp:param name="activeMenu" value="products" />
+  </jsp:include>
 
   <div class="main-content">
-    <jsp:include page="/common/header.jsp" />
+    <jsp:include page="/common/header.jsp">
+      <jsp:param name="breadcrumbCurrent" value="Hàng hóa" />
+    </jsp:include>
 
     <div class="page-body">
       <!-- Page Top Header -->

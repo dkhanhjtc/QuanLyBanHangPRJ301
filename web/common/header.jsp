@@ -4,6 +4,7 @@
 
 <c:set var="userRole" value="${empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase()}" />
 <c:set var="currentUser" value="${sessionScope.user}" />
+<c:set var="currentCrumb" value="${not empty param.breadcrumbCurrent ? param.breadcrumbCurrent : (not empty breadcrumbCurrent ? breadcrumbCurrent : 'Tổng quan')}" />
 
 <header class="topbar">
   <!-- Breadcrumb Navigation -->
@@ -21,7 +22,7 @@
       </span>
     </a>
     <span>/</span>
-    <span class="current">${empty breadcrumbCurrent ? 'Tổng quan' : breadcrumbCurrent}</span>
+    <span class="current">${currentCrumb}</span>
   </div>
 
   <!-- Topbar Right Controls -->

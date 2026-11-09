@@ -47,10 +47,14 @@
 <body>
 
 <div class="app-container">
-  <jsp:include page="/common/sidebar.jsp" />
+  <jsp:include page="/common/sidebar.jsp">
+    <jsp:param name="activeMenu" value="stocktakes" />
+  </jsp:include>
 
   <div class="main-content">
-    <jsp:include page="/common/header.jsp" />
+    <jsp:include page="/common/header.jsp">
+      <jsp:param name="breadcrumbCurrent" value="Kiểm kê định kỳ" />
+    </jsp:include>
 
     <div class="page-body">
       <!-- Page Top Header -->
@@ -108,12 +112,14 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="areaSelect">Khu vực kiểm kê *</label>
+              <label class="form-label" for="areaSelect">Khu vực / Nhóm hàng kiểm kê *</label>
               <select id="areaSelect" name="title" class="form-select" required>
-                <option value="Kệ cà phê & trà">Kệ cà phê &amp; trà</option>
-                <option value="Kệ đồ uống">Kệ đồ uống</option>
-                <option value="Kệ thực phẩm">Kệ thực phẩm</option>
-                <option value="Toàn bộ kho">Toàn bộ kho hàng</option>
+                <option value="Áo sơ mi">Khu vực: Áo sơ mi</option>
+                <option value="Áo thun & Polo">Khu vực: Áo thun &amp; Polo</option>
+                <option value="Quần Jeans & Quần Tây">Khu vực: Quần Jeans &amp; Quần Tây</option>
+                <option value="Váy đầm">Khu vực: Váy đầm</option>
+                <option value="Áo khoác">Khu vực: Áo khoác</option>
+                <option value="Toàn bộ kho">Toàn bộ kho thời trang</option>
               </select>
             </div>
 

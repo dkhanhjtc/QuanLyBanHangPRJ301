@@ -5,7 +5,22 @@
 // Dropdown Toggle
 function toggleUserDropdown(event) {
   event.stopPropagation();
+  const alertDropdown = document.getElementById('stockAlertDropdown');
+  if (alertDropdown) alertDropdown.style.display = 'none';
+
   const dropdown = document.getElementById('userDropdown');
+  if (dropdown) {
+    dropdown.style.display = (dropdown.style.display === 'block') ? 'none' : 'block';
+  }
+}
+
+// Stock Alert Dropdown Toggle
+function toggleStockAlertDropdown(event) {
+  event.stopPropagation();
+  const userDropdown = document.getElementById('userDropdown');
+  if (userDropdown) userDropdown.style.display = 'none';
+
+  const dropdown = document.getElementById('stockAlertDropdown');
   if (dropdown) {
     dropdown.style.display = (dropdown.style.display === 'block') ? 'none' : 'block';
   }
@@ -17,6 +32,13 @@ document.addEventListener('click', function(e) {
   if (dropdown && dropdown.style.display === 'block') {
     if (!e.target.closest('#userMenuToggle')) {
       dropdown.style.display = 'none';
+    }
+  }
+
+  const alertDropdown = document.getElementById('stockAlertDropdown');
+  if (alertDropdown && alertDropdown.style.display === 'block') {
+    if (!e.target.closest('#stockAlertBtn')) {
+      alertDropdown.style.display = 'none';
     }
   }
 });

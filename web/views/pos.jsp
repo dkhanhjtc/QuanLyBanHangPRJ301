@@ -107,12 +107,14 @@
             </button>
           </div>
 
-          <!-- Category Filter Pills -->
+          <!-- Category Filter Pills (Thời trang & Phân loại) -->
           <div style="display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;">
             <button type="button" class="filter-tab-pill active" onclick="filterCategory('all', this)">Tất cả · ${products != null ? products.size() : 0}</button>
-            <button type="button" class="filter-tab-pill" onclick="filterCategory('coffee', this)">Cà phê &amp; trà</button>
-            <button type="button" class="filter-tab-pill" onclick="filterCategory('drinks', this)">Đồ uống</button>
-            <button type="button" class="filter-tab-pill" onclick="filterCategory('food', this)">Thực phẩm</button>
+            <button type="button" class="filter-tab-pill" onclick="filterCategory('Áo sơ mi', this)">Áo sơ mi</button>
+            <button type="button" class="filter-tab-pill" onclick="filterCategory('Áo thun', this)">Áo thun / Polo</button>
+            <button type="button" class="filter-tab-pill" onclick="filterCategory('Quần', this)">Quần Jean / Tây</button>
+            <button type="button" class="filter-tab-pill" onclick="filterCategory('Váy đầm', this)">Váy đầm</button>
+            <button type="button" class="filter-tab-pill" onclick="filterCategory('Áo khoác', this)">Áo khoác</button>
           </div>
 
           <!-- Product Cards Grid (Rendered from DB, No Hardcoding) -->
@@ -126,7 +128,10 @@
                     </div>
                     <div class="product-card-body">
                       <div class="product-title">${p.name}</div>
-                      <div class="product-sku-spec">${p.spec != null ? p.spec : p.unit} · ${p.sku}</div>
+                      <div class="product-sku-spec" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span class="badge" style="background:#eff6ff; color:#2563eb; font-size:0.7rem; padding:2px 6px;">${p.spec != null ? p.spec : p.unit}</span>
+                        <span style="color:#94a3b8; font-size:0.7rem;">${p.sku}</span>
+                      </div>
                       <div class="product-card-footer">
                         <div>
                           <div class="product-price"><fmt:formatNumber value="${p.price}" pattern="#,###"/> đ</div>
@@ -299,15 +304,15 @@
     </div>
 
     <div class="modal-body">
-      <!-- Shift Summary Dark Box -->
-      <div style="background: #0f172a; color: #ffffff; border-radius: 12px; padding: 18px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 18px;">
+      <!-- Shift Summary Box (Modern Minimalist Light Accent) -->
+      <div style="background: #eff6ff; color: #0f172a; border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 18px;">
         <div>
-          <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Đơn đã thanh toán</div>
-          <div style="font-size: 1.75rem; font-weight: 800;">${shiftOrderCount != null ? shiftOrderCount : 0} đơn</div>
+          <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Đơn đã thanh toán</div>
+          <div style="font-size: 1.75rem; font-weight: 800; color: #2563eb;">${shiftOrderCount != null ? shiftOrderCount : 0} đơn</div>
         </div>
         <div>
-          <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px;">Trạng thái kho</div>
-          <div style="font-size: 1.25rem; font-weight: 700; color: #60a5fa;">Đã đồng bộ</div>
+          <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Trạng thái kho</div>
+          <div style="font-size: 1.25rem; font-weight: 700; color: #16a34a;">Đã đồng bộ</div>
         </div>
       </div>
 

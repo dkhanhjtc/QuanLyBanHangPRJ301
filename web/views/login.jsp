@@ -21,8 +21,9 @@
     }
     .login-banner {
       width: 48%;
-      background-color: #0c1222;
-      color: #ffffff;
+      background: linear-gradient(145deg, #f0f7ff 0%, #e0f2fe 100%);
+      color: #0f172a;
+      border-right: 1px solid #bfdbfe;
       padding: 56px 64px;
       display: flex;
       flex-direction: column;
@@ -38,11 +39,12 @@
       overflow-y: auto;
     }
     .preview-card {
-      background-color: #162032;
-      border: 1px solid #243048;
+      background-color: #ffffff;
+      border: 1px solid #bfdbfe;
       border-radius: 16px;
       padding: 24px;
       margin: 40px 0;
+      box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.08);
     }
     .preview-bars {
       display: flex;
@@ -65,11 +67,11 @@
     .preview-bar:nth-child(4) { height: 85%; }
     .preview-bar:nth-child(5) { height: 100%; }
     .preview-bar:nth-child(6) { height: 70%; }
-    .preview-bar:nth-child(7) { height: 55%; background: #60a5fa; }
+    .preview-bar:nth-child(7) { height: 55%; background: #3b82f6; }
     
     .pill-card {
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 10px;
       padding: 10px 14px;
       display: flex;
@@ -101,20 +103,20 @@
           </svg>
         </div>
         <div>
-          <span style="color:#fff;">kiotflow</span>
-          <span class="brand-tag" style="color:#94a3b8; margin-left:6px;">RETAIL OPERATIONS</span>
+          <span style="color:#0f172a; font-weight:800;">kiotflow</span>
+          <span class="brand-tag" style="color:#64748b; margin-left:6px;">RETAIL OPERATIONS</span>
         </div>
       </div>
 
       <div style="margin-top: 48px;">
-        <div style="font-size: 0.75rem; font-weight: 700; color: #60a5fa; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-          <span style="display:inline-block; width:16px; height:2px; background:#3b82f6;"></span>
-          HỆ THỐNG QUẢN LÝ BÁN HÀNG & TỒN KHO
+        <div style="font-size: 0.75rem; font-weight: 700; color: #2563eb; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <span style="display:inline-block; width:16px; height:2px; background:#2563eb;"></span>
+          HỆ THỐNG QUẢN LÝ BÁN HÀNG &amp; TỒN KHO
         </div>
-        <h1 style="font-size: 2.5rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.03em; color: #ffffff; max-width: 480px;">
+        <h1 style="font-size: 2.3rem; font-weight: 800; line-height: 1.2; letter-spacing: -0.03em; color: #0f172a; max-width: 480px;">
           Mỗi giao dịch rõ ràng. Mỗi món hàng trong tầm kiểm soát.
         </h1>
-        <p style="font-size: 0.95rem; color: #94a3b8; margin-top: 16px; line-height: 1.6; max-width: 440px;">
+        <p style="font-size: 0.95rem; color: #475569; margin-top: 16px; line-height: 1.6; max-width: 440px;">
           Từ quầy thu ngân đến đối soát cuối ngày — một không gian vận hành, đúng người và đúng quyền.
         </p>
       </div>
@@ -122,7 +124,7 @@
       <!-- Live Mockup Summary Card -->
       <div class="preview-card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 600; color: #e2e8f0;">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 600; color: #1e293b;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
             An Nhiên · Tổng quan vận hành
           </div>
@@ -131,10 +133,10 @@
 
         <div style="margin-top: 18px; display: flex; align-items: baseline; justify-content: space-between;">
           <div>
-            <div style="font-size: 0.72rem; color: #94a3b8;">Ước tính doanh thu tuần</div>
-            <div style="font-size: 1.75rem; font-weight: 800; color: #ffffff;">11.054.000 <span style="text-decoration: underline;">đ</span></div>
+            <div style="font-size: 0.72rem; color: #64748b;">Ước tính doanh thu tuần</div>
+            <div style="font-size: 1.75rem; font-weight: 800; color: #0f172a;">11.054.000 <span style="text-decoration: underline;">đ</span></div>
           </div>
-          <span class="badge" style="background:#064e3b; color:#34d399; font-size:0.75rem; padding:4px 8px;">+8,2% so với tuần trước</span>
+          <span class="badge" style="background:#ecfdf5; color:#15803d; border:1px solid #a7f3d0; font-size:0.75rem; padding:4px 8px;">+8,2% so với tuần trước</span>
         </div>
 
         <!-- Bar chart preview -->
@@ -150,17 +152,17 @@
 
         <div class="pill-grid">
           <div class="pill-card">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             <div>
-              <div style="color:#ffffff; font-weight:600;">Đơn #BH-1042</div>
-              <div style="color:#94a3b8; font-size:0.7rem;">Đã thanh toán · 408.000 đ</div>
+              <div style="color:#0f172a; font-weight:600;">Đơn #BH-1042</div>
+              <div style="color:#64748b; font-size:0.7rem;">Đã thanh toán · 408.000 đ</div>
             </div>
           </div>
           <div class="pill-card">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/></svg>
             <div>
-              <div style="color:#ffffff; font-weight:600;">Tồn kho đồng bộ</div>
-              <div style="color:#94a3b8; font-size:0.7rem;">Theo từng giao dịch</div>
+              <div style="color:#0f172a; font-weight:600;">Tồn kho đồng bộ</div>
+              <div style="color:#64748b; font-size:0.7rem;">Theo từng giao dịch</div>
             </div>
           </div>
         </div>

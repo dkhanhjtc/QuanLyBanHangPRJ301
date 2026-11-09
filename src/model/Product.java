@@ -15,6 +15,8 @@ public class Product implements Serializable {
     private int minStock;
     private String unit;
     private String spec;
+    private String size;
+    private String color;
     private String imageUrl;
     private String status;
 
@@ -47,6 +49,41 @@ public class Product implements Serializable {
         this.spec = spec;
         this.imageUrl = imageUrl;
         this.status = status;
+        parseSpec();
+    }
+
+    public Product(String id, String sku, String name, String category, double price, double costPrice, int stockQuantity, int minStock, String unit, String spec, String size, String color, String imageUrl, String status) {
+        this.id = id;
+        this.sku = sku != null ? sku : id;
+        this.name = name;
+        this.category = category;
+        this.price = price;
+        this.costPrice = costPrice;
+        this.stockQuantity = stockQuantity;
+        this.minStock = minStock;
+        this.unit = unit;
+        this.spec = spec;
+        this.size = size;
+        this.color = color;
+        this.imageUrl = imageUrl;
+        this.status = status;
+        if ((this.size == null || this.color == null) && spec != null) {
+            parseSpec();
+        }
+    }
+
+    private void parseSpec() {
+        if (spec != null && !spec.trim().isEmpty()) {
+            String[] parts = spec.split("·|•|-|,");
+            for (String p : parts) {
+                String trimmed = p.trim();
+                if (trimmed.toLowerCase().startsWith("size") || trimmed.matches("(?i)^(S|M|L|XL|XXL|28|29|30|31|32|33|34)$")) {
+                    if (this.size == null) this.size = trimmed.replaceFirst("(?i)size\\s*", "").trim();
+                } else if (!trimmed.isEmpty()) {
+                    if (this.color == null) this.color = trimmed;
+                }
+            }
+        }
     }
 
     public String getId() {
@@ -125,11 +162,34 @@ public class Product implements Serializable {
     }
 
     public String getSpec() {
+        if (spec == null && (size != null || color != null)) {
+            String s = "";
+            if (size != null && !size.isEmpty()) s += "Size " + size;
+            if (color != null && !color.isEmpty()) s += (s.isEmpty() ? "" : " · ") + color;
+            return s;
+        }
         return spec;
     }
 
     public void setSpec(String spec) {
         this.spec = spec;
+        parseSpec();
+    }
+
+    public String getSize() {
+        return size;
+    }
+
+    public void setSize(String size) {
+        this.size = size;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 
     public String getImageUrl() {

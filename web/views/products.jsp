@@ -349,16 +349,43 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
           <div class="form-group">
-            <label class="form-label" for="modalProductCategory">Nhóm hàng</label>
+            <label class="form-label" for="modalProductCategory">Nhóm hàng thời trang</label>
             <select id="modalProductCategory" name="category" class="form-select">
-              <option value="coffee">Cà phê &amp; trà</option>
-              <option value="drinks">Đồ uống</option>
-              <option value="food">Thực phẩm</option>
+              <option value="Áo sơ mi">Áo sơ mi</option>
+              <option value="Áo thun">Áo thun / Polo</option>
+              <option value="Quần">Quần Jeans / Quần Tây</option>
+              <option value="Váy đầm">Váy đầm</option>
+              <option value="Áo khoác">Áo khoác</option>
+              <option value="Khác">Phụ kiện / Khác</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label" for="modalProductUnit">Đơn vị tính</label>
-            <input type="text" id="modalProductUnit" name="unit" class="form-input" placeholder="Ví dụ: Gói 250g, Hộp 1L">
+            <input type="text" id="modalProductUnit" name="unit" class="form-input" placeholder="Ví dụ: Cái, Bộ, Chiếc">
+          </div>
+        </div>
+
+        <!-- Biến thể Kích cỡ (Size) và Màu sắc (Color) cho thời trang -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="modalProductSize">Kích cỡ (Size)</label>
+            <select id="modalProductSize" name="size" class="form-select">
+              <option value="">-- Chọn Size --</option>
+              <option value="S">Size S</option>
+              <option value="M">Size M</option>
+              <option value="L">Size L</option>
+              <option value="XL">Size XL</option>
+              <option value="XXL">Size XXL</option>
+              <option value="29">Size 29</option>
+              <option value="30">Size 30</option>
+              <option value="31">Size 31</option>
+              <option value="32">Size 32</option>
+              <option value="Freesize">Freesize</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="modalProductColor">Màu sắc (Color)</label>
+            <input type="text" id="modalProductColor" name="color" class="form-input" placeholder="Ví dụ: Trắng, Đen, Be, Xanh Navy">
           </div>
         </div>
 

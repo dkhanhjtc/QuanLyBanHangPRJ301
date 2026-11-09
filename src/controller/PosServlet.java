@@ -35,6 +35,10 @@ public class PosServlet extends HttpServlet {
         List<Product> products = productDAO.getProductsByCategory(category);
         request.setAttribute("products", products);
 
+        // Lấy danh sách sản phẩm cảnh báo chạm đáy
+        List<Product> lowStockProducts = productDAO.getLowStockProducts();
+        request.setAttribute("lowStockProducts", lowStockProducts);
+
         // Lấy danh sách đơn hàng trong ngày/ca
         List<Order> shiftOrders = orderDAO.getTodayOrders();
         request.setAttribute("shiftOrders", shiftOrders);

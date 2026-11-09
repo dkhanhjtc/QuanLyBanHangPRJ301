@@ -30,12 +30,58 @@
       KiotFlow · Ca làm việc
     </span>
 
-    <button type="button" class="icon-button" title="Thông báo" onclick="alert('Hệ thống hoạt động bình thường · Dữ liệu đồng bộ trực tiếp với CSDL SQL Server!')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-        <path d="M13.73 21a2 2 0 01-3.46 0"/>
-      </svg>
-    </button>
+    <div style="position: relative;">
+      <button type="button" class="icon-button" id="stockAlertBtn" title="Cảnh báo tồn kho" onclick="toggleStockAlertDropdown(event)" style="position: relative;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+        <c:if test="${not empty lowStockProducts and lowStockProducts.size() > 0}">
+          <span style="position: absolute; top: -3px; right: -3px; background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; width: 17px; height: 17px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff;">
+            ${lowStockProducts.size()}
+          </span>
+        </c:if>
+      </button>
+
+      <!-- Dropdown Cảnh báo tồn kho thông minh -->
+      <div id="stockAlertDropdown" style="display:none; position:absolute; right:0; top:44px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; width:330px; box-shadow:0 12px 24px -6px rgba(15,23,42,0.12); z-index:1000; padding:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;">
+          <div style="font-size:0.8rem; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>CẢNH BÁO TỒN KHO THẤP</span>
+          </div>
+          <span class="badge badge-danger" style="font-size:0.65rem; padding:2px 6px;">
+            ${not empty lowStockProducts ? lowStockProducts.size() : 0} sản phẩm
+          </span>
+        </div>
+        <div style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+          <c:choose>
+            <c:when test="${not empty lowStockProducts and lowStockProducts.size() > 0}">
+              <c:forEach var="lsp" items="${lowStockProducts}">
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:8px 10px; font-size:0.8rem;">
+                  <div>
+                    <div style="font-weight:700; color:#991b1b;">${lsp.name}</div>
+                    <div style="font-size:0.7rem; color:#b91c1c;">Mã: ${lsp.sku} · ${lsp.spec}</div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-weight:800; color:#dc2626;">Tồn: ${lsp.stockQuantity}</div>
+                    <div style="font-size:0.68rem; color:#64748b;">Mức sàn: ${lsp.minStock}</div>
+                  </div>
+                </div>
+              </c:forEach>
+            </c:when>
+            <c:otherwise>
+              <div style="text-align:center; padding:16px 8px; color:#64748b; font-size:0.8rem;">
+                Tồn kho an toàn. Không có sản phẩm nào chạm mức tồn tối thiểu!
+              </div>
+            </c:otherwise>
+          </c:choose>
+        </div>
+        <div style="border-top:1px solid #f1f5f9; margin-top:10px; padding-top:8px; text-align:center;">
+          <a href="${pageContext.request.contextPath}/products" style="font-size:0.75rem; font-weight:700; color:#2563eb;">Xem chi tiết kho hàng &rarr;</a>
+        </div>
+      </div>
+    </div>
 
     <!-- User Profile Dropdown -->
     <div class="user-profile" id="userMenuToggle" onclick="toggleUserDropdown(event)" style="position: relative; cursor: pointer;">

@@ -140,6 +140,9 @@ public class ProductServlet extends HttpServlet {
         String name = request.getParameter("name");
         String cat = request.getParameter("category");
         String unit = request.getParameter("unit");
+        String size = request.getParameter("size");
+        String color = request.getParameter("color");
+        String spec = request.getParameter("spec");
         String costPriceStr = request.getParameter("costPrice");
         String priceStr = request.getParameter("price");
         String stockStr = request.getParameter("stockQuantity");
@@ -149,15 +152,22 @@ public class ProductServlet extends HttpServlet {
             double costPrice = 0;
             double price = 0;
             int stock = 0;
-            int minStock = 0;
+            int minStock = 5;
 
             try { costPrice = Double.parseDouble(costPriceStr); } catch (Exception ignored) {}
             try { price = Double.parseDouble(priceStr); } catch (Exception ignored) {}
             try { stock = Integer.parseInt(stockStr); } catch (Exception ignored) {}
-            try { minStock = Integer.parseInt(minStockStr); } catch (Exception ignored) {}
+            try { if (minStockStr != null && !minStockStr.trim().isEmpty()) minStock = Integer.parseInt(minStockStr); } catch (Exception ignored) {}
+
+            if (spec == null || spec.trim().isEmpty()) {
+                String s = "";
+                if (size != null && !size.trim().isEmpty()) s += "Size " + size.trim();
+                if (color != null && !color.trim().isEmpty()) s += (s.isEmpty() ? "" : " · ") + color.trim();
+                spec = s.isEmpty() ? unit : s;
+            }
 
             Product existing = productDAO.getProductById(sku);
-            Product p = new Product(sku, sku, name, cat, price, costPrice, stock, minStock, unit, unit, sku + ".svg", "ACTIVE");
+            Product p = new Product(sku, sku, name, cat, price, costPrice, stock, minStock, unit, spec, size, color, sku + ".svg", "ACTIVE");
 
             if (existing != null) {
                 productDAO.updateProduct(p);

@@ -61,14 +61,31 @@ public class StocktakeServlet extends HttpServlet {
         int overdueCount = 0;
 
         for (Stocktake st : list) {
-            if ("PENDING".equalsIgnoreCase(st.getStatus())) openCount++;
-            else if ("REVIEW".equalsIgnoreCase(st.getStatus())) reviewCount++;
-            else if ("OVERDUE".equalsIgnoreCase(st.getStatus())) overdueCount++;
+            String s = st.getStatus() != null ? st.getStatus().toUpperCase() : "";
+            if ("PENDING".equals(s) || "ASSIGNED".equals(s)) openCount++;
+            else if ("REVIEW".equals(s) || "COUNTED".equals(s)) reviewCount++;
+            else if ("OVERDUE".equals(s)) overdueCount++;
         }
 
         request.setAttribute("openCount", openCount);
         request.setAttribute("reviewCount", reviewCount);
         request.setAttribute("overdueCount", overdueCount);
+
+        // Nạp sẵn phiếu chờ đối soát (ưu tiên KK-101 hoặc phiếu COUNTED/REVIEW đầu tiên)
+        Stocktake reconcileStocktake = stocktakeDAO.getStocktakeByCode("KK-101");
+        if (reconcileStocktake == null) {
+            for (Stocktake s : list) {
+                String stat = s.getStatus() != null ? s.getStatus().toUpperCase() : "";
+                if ("REVIEW".equals(stat) || "COUNTED".equals(stat)) {
+                    reconcileStocktake = stocktakeDAO.getStocktakeById(s.getId());
+                    break;
+                }
+            }
+        }
+        if (reconcileStocktake == null && !list.isEmpty()) {
+            reconcileStocktake = stocktakeDAO.getStocktakeById(list.get(0).getId());
+        }
+        request.setAttribute("reconcileStocktake", reconcileStocktake);
 
         request.getRequestDispatcher("/views/stocktakes.jsp").forward(request, response);
     }

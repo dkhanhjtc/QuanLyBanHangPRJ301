@@ -1,9 +1,9 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <c:set var="activeMenu" value="stocktakes" />
-<c:set var="breadcrumbCurrent" value="Kiểm kê" />
+<c:set var="breadcrumbCurrent" value="Kiểm kê định kỳ" />
 
 <!DOCTYPE html>
 <html lang="vi">
@@ -42,6 +42,16 @@
       color: var(--primary);
       border-bottom-color: var(--primary);
     }
+    .modal-window-80 {
+      width: 80vw !important;
+      max-width: 80vw !important;
+      max-height: 85vh;
+      overflow-y: auto;
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+      background: #ffffff;
+      padding: 28px 32px;
+    }
   </style>
 </head>
 <body>
@@ -79,13 +89,13 @@
 
       <!-- Tab Buttons Navigation -->
       <div class="sub-nav-tabs">
-        <button type="button" class="sub-nav-tab active">
+        <button type="button" class="sub-nav-tab active" id="tabBtnStocktakes">
           <span>Phân công kiểm kê</span>
         </button>
-        <a href="${pageContext.request.contextPath}/stocktake-detail?code=KK-101" class="sub-nav-tab">
+        <button type="button" class="sub-nav-tab" id="tabBtnReconcile" onclick="openReconcileModal()">
           <span>Đối soát chênh lệch</span>
           <span class="badge badge-warning" style="font-size: 0.7rem; padding: 2px 7px;">${reviewCount != null ? reviewCount : 0}</span>
-        </a>
+        </button>
       </div>
 
       <!-- Main Layout: Form on Left, Stats & Table on Right -->
@@ -193,10 +203,10 @@
                           </td>
                           <td>
                             <c:choose>
-                              <c:when test="${st.status eq 'REVIEW'}">
+                              <c:when test="${st.status eq 'REVIEW' || st.status eq 'COUNTED'}">
                                 <span class="badge badge-warning">Chờ đối soát</span>
                               </c:when>
-                              <c:when test="${st.status eq 'PENDING'}">
+                              <c:when test="${st.status eq 'PENDING' || st.status eq 'ASSIGNED'}">
                                 <span class="badge badge-primary">Chờ thực hiện</span>
                               </c:when>
                               <c:when test="${st.status eq 'OVERDUE'}">
@@ -209,14 +219,16 @@
                           </td>
                           <td style="text-align: right;">
                             <c:choose>
-                              <c:when test="${st.status eq 'REVIEW'}">
-                                <a href="${pageContext.request.contextPath}/stocktake-detail?code=${st.code}" style="font-weight: 700; font-size: 0.85rem; color: #2563eb; display: inline-flex; align-items: center; gap: 4px;">
+                              <c:when test="${st.status eq 'REVIEW' || st.status eq 'COUNTED'}">
+                                <button type="button" class="btn btn-primary" style="padding: 5px 12px; font-size: 0.825rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" onclick="openReconcileModal('${st.code}')">
                                   <span>Đối soát</span>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                                </a>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
                               </c:when>
                               <c:otherwise>
-                                <a href="${pageContext.request.contextPath}/stocktake-detail?code=${st.code}" style="font-weight: 600; font-size: 0.825rem; color: #64748b;">Xem chi tiết</a>
+                                <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.8rem;" onclick="openReconcileModal('${st.code}')">
+                                  <span>Xem chi tiết</span>
+                                </button>
                               </c:otherwise>
                             </c:choose>
                           </td>
@@ -248,6 +260,201 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>Nhân viên chỉ nhập số đếm cho nhiệm vụ được giao. Tồn kho chỉ thay đổi sau khi Quản lý duyệt chênh lệch.</span>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL: ĐỐI SOÁT CHÊNH LỆCH KIỂM KÊ (80% MÀN HÌNH HIỂN THỊ)
+     ========================================================================== -->
+<div class="modal-backdrop" id="reconcileModal" style="display: none;">
+  <div class="modal-window modal-window-80">
+    <!-- Modal Header -->
+    <div class="modal-header" style="padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <h2 class="modal-title" style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0;">
+            Đối soát kiểm kê #${reconcileStocktake != null ? reconcileStocktake.code : 'KK-101'}
+          </h2>
+          <c:choose>
+            <c:when test="${reconcileStocktake.status eq 'COMPLETED' || reconcileStocktake.status eq 'APPROVED'}">
+              <span class="badge badge-success" style="font-size: 0.8rem; padding: 4px 10px;">Đã đối soát</span>
+            </c:when>
+            <c:otherwise>
+              <span class="badge badge-warning" style="font-size: 0.8rem; padding: 4px 10px;">Chờ đối soát</span>
+            </c:otherwise>
+          </c:choose>
+        </div>
+        <div class="modal-sub" style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
+          ${reconcileStocktake != null ? reconcileStocktake.title : 'Khu vực Áo sơ mi & Áo thun'} · Người thực hiện: <strong>${reconcileStocktake != null ? reconcileStocktake.assignedTo : 'Trần Quốc Bảo'}</strong>
+        </div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeReconcileModal()">&times;</button>
+    </div>
+
+    <div class="modal-body" style="padding: 0;">
+      <!-- Info Meta Panel -->
+      <div class="card" style="padding: 16px 20px; margin-bottom: 18px; background: #f8fafc; border: 1px solid #e2e8f0;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+          <div>
+            <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Thời điểm kiểm kê</div>
+            <div style="font-size: 0.875rem; font-weight: 600; color: #0f172a;">${reconcileStocktake != null ? reconcileStocktake.formattedDate : '27/10/2026 10:25'}</div>
+          </div>
+          <div>
+            <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Trạng thái phiếu</div>
+            <div style="font-size: 0.875rem; font-weight: 700; color: #2563eb;">${reconcileStocktake != null ? reconcileStocktake.status : 'COUNTED'}</div>
+          </div>
+          <div>
+            <div style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Nhân sự đối soát</div>
+            <div style="font-size: 0.875rem; font-weight: 600; color: #0f172a;"><c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Nguyễn Minh Hà · Quản lý'}" /></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Warning Banner -->
+      <c:if test="${reconcileStocktake.status ne 'COMPLETED' && reconcileStocktake.status ne 'APPROVED'}">
+        <div style="display: flex; align-items: flex-start; gap: 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; font-size: 0.825rem; color: #b45309;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div>
+            <strong>Lưu ý:</strong> Chưa cập nhật tồn kho. Khi nhấn Duyệt: số lượng tồn trong CSDL sẽ được cập nhật chính xác theo số thực đếm của nhân viên.
+          </div>
+        </div>
+      </c:if>
+
+      <!-- Discrepancy Table Card -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header" style="padding: 14px 20px;">
+          <div>
+            <div class="card-title" style="font-size: 1rem;">Số đếm &amp; chênh lệch thực tế</div>
+            <div class="card-subtitle">Chênh lệch = Thực đếm – Hệ thống</div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>SẢN PHẨM</th>
+                <th style="text-align: center;">HỆ THỐNG</th>
+                <th style="text-align: center;">THỰC ĐẾM</th>
+                <th style="text-align: center;">CHÊNH LỆCH</th>
+                <th style="text-align: right;">GIÁ TRỊ VỐN CHÊNH</th>
+                <th>GIẢI TRÌNH CỦA NHÂN VIÊN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <c:choose>
+                <c:when test="${not empty reconcileStocktake.items}">
+                  <c:forEach items="${reconcileStocktake.items}" var="item">
+                    <tr>
+                      <td>
+                        <div style="font-weight: 700; color: #0f172a;">${item.productName}</div>
+                        <div style="font-size: 0.72rem; color: #64748b;">Mã SP: ${item.productId} · ${item.spec}</div>
+                      </td>
+                      <td style="font-weight: 600; text-align: center;">${item.systemStock}</td>
+                      <td style="font-weight: 600; text-align: center;">${item.actualStock}</td>
+                      <td style="text-align: center;">
+                        <c:choose>
+                          <c:when test="${item.variance < 0}">
+                            <span class="badge badge-danger" style="font-size: 0.8rem; padding: 4px 8px;">${item.variance}</span>
+                          </c:when>
+                          <c:when test="${item.variance > 0}">
+                            <span class="badge badge-primary" style="font-size: 0.8rem; padding: 4px 8px;">+${item.variance}</span>
+                          </c:when>
+                          <c:otherwise>
+                            <span class="badge badge-gray" style="font-size: 0.8rem; padding: 4px 8px;">0</span>
+                          </c:otherwise>
+                        </c:choose>
+                      </td>
+                      <td style="font-weight: 600; text-align: right; ${item.variance < 0 ? 'color: #ef4444;' : (item.variance > 0 ? 'color: #2563eb;' : 'color: #64748b;')}">
+                        <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> đ
+                      </td>
+                      <td>
+                        <div style="font-size: 0.825rem; color: #334155;">
+                          <c:out value="${item.note != null && !item.note.isEmpty() ? item.note : 'Khớp số lượng hệ thống.'}" />
+                        </div>
+                      </td>
+                    </tr>
+                  </c:forEach>
+                </c:when>
+                <c:otherwise>
+                  <tr>
+                    <td colspan="6" style="text-align: center; padding: 30px; color: #94a3b8;">
+                      Chưa có mặt hàng nào được ghi nhận trong phiếu kiểm kê này.
+                    </td>
+                  </tr>
+                </c:otherwise>
+              </c:choose>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Reconciliation Action Block -->
+      <c:choose>
+        <c:when test="${reconcileStocktake.status eq 'COMPLETED' || reconcileStocktake.status eq 'APPROVED'}">
+          <div style="display: flex; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 20px;">
+            <div style="color: #15803d; font-weight: 600; font-size: 0.925rem;">
+              ✓ Đợt kiểm kê này đã được phê duyệt và cân bằng tồn kho hoàn tất.
+            </div>
+            <button type="button" class="btn btn-outline" onclick="closeReconcileModal()">Đóng cửa sổ</button>
+          </div>
+        </c:when>
+        <c:otherwise>
+          <form action="${pageContext.request.contextPath}/stocktakes" method="POST">
+            <input type="hidden" name="action" value="approve">
+            <input type="hidden" name="id" value="${reconcileStocktake != null ? reconcileStocktake.id : 1}">
+            <input type="hidden" name="code" value="${reconcileStocktake != null ? reconcileStocktake.code : 'KK-101'}">
+
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label class="form-label" for="reconcileNotes">Ghi chú đối soát</label>
+              <input type="text" id="reconcileNotes" name="notes" class="form-input" value="Đã kiểm tra lại thực tế và xác nhận điều chỉnh tồn kho.">
+            </div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 18px;">
+              Hành động duyệt sẽ cập nhật số lượng tồn kho trong SQL Server và lưu vào Nhật ký hoạt động.
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+              <button type="button" class="btn btn-outline" onclick="closeReconcileModal()">
+                <span>Hủy bỏ</span>
+              </button>
+              <button type="submit" class="btn btn-primary" onclick="return confirm('Xác nhận DUYỆT và cập nhật cân bằng tồn kho thực tế cho phiếu ${reconcileStocktake.code}?')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Duyệt điều chỉnh tồn kho</span>
+              </button>
+            </div>
+          </form>
+        </c:otherwise>
+      </c:choose>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openReconcileModal(code) {
+    const modal = document.getElementById('reconcileModal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  }
+
+  function closeReconcileModal() {
+    const modal = document.getElementById('reconcileModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+
+  // Đóng modal khi click ra ngoài vùng cửa sổ modal
+  window.addEventListener('click', function(e) {
+    const modal = document.getElementById('reconcileModal');
+    if (e.target === modal) {
+      closeReconcileModal();
+    }
+  });
+</script>
         </div>
       </div>
     </div>

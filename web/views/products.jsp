@@ -1,16 +1,17 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-<c:set var="activeMenu" value="products" />
-<c:set var="breadcrumbCurrent" value="Hàng hóa" />
+<c:set var="isApprovalsTab" value="${param.tab eq 'approvals' || activeTab eq 'approvals'}" />
+<c:set var="activeMenu" value="${isApprovalsTab ? 'approvals' : 'products'}" />
+<c:set var="breadcrumbCurrent" value="${isApprovalsTab ? 'Duyệt hàng về' : 'Hàng hóa'}" />
 
 <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản lý hàng hóa · Kiotflow</title>
+  <title>${isApprovalsTab ? 'Duyệt hàng về' : 'Quản lý hàng hóa'} · Kiotflow</title>
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
   <script>
     window.CONTEXT_PATH = "${pageContext.request.contextPath}";
@@ -51,12 +52,12 @@
 
 <div class="app-container">
   <jsp:include page="/common/sidebar.jsp">
-    <jsp:param name="activeMenu" value="products" />
+    <jsp:param name="activeMenu" value="${activeMenu}" />
   </jsp:include>
 
   <div class="main-content">
     <jsp:include page="/common/header.jsp">
-      <jsp:param name="breadcrumbCurrent" value="Hàng hóa" />
+      <jsp:param name="breadcrumbCurrent" value="${breadcrumbCurrent}" />
     </jsp:include>
 
     <div class="page-body">
@@ -86,10 +87,10 @@
 
       <!-- Tab Buttons Navigation -->
       <div class="sub-nav-tabs">
-        <button type="button" class="sub-nav-tab active" id="tabBtnProducts" onclick="switchProductTab('products')">
+        <button type="button" class="sub-nav-tab ${not isApprovalsTab ? 'active' : ''}" id="tabBtnProducts" onclick="switchProductTab('products')">
           <span>Hàng hóa</span>
         </button>
-        <button type="button" class="sub-nav-tab" id="tabBtnApprovals" onclick="switchProductTab('approvals')">
+        <button type="button" class="sub-nav-tab ${isApprovalsTab ? 'active' : ''}" id="tabBtnApprovals" onclick="switchProductTab('approvals')">
           <span>Duyệt hàng về</span>
           <span class="badge badge-primary" style="font-size: 0.7rem; padding: 2px 7px;">${pendingPOCount != null ? pendingPOCount : 0}</span>
         </button>
@@ -98,7 +99,7 @@
       <!-- ====================================================================
            TAB 1: PRODUCTS INVENTORY TABLE VIEW
            ==================================================================== -->
-      <div id="productsTableView">
+      <div id="productsTableView" style="${isApprovalsTab ? 'display: none;' : ''}">
         <div class="card">
           <!-- Filter Bar -->
           <div style="padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px;">
@@ -169,7 +170,18 @@
                           </c:choose>
                         </td>
                         <td style="text-align: right;">
-                          <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('${p.sku}', '${p.name}', '${p.category}', '${p.unit}', '${p.costPrice}', '${p.price}', '${p.stockQuantity}', '${p.minStock}', '${not empty p.imageUrl ? p.imageUrl : ''}')" title="Chỉnh sửa">
+                          <button type="button" class="btn btn-outline" style="padding: 4px 8px;"
+                            data-sku="<c:out value='${p.sku}'/>"
+                            data-name="<c:out value='${p.name}'/>"
+                            data-category="<c:out value='${p.category}'/>"
+                            data-unit="<c:out value='${p.unit}'/>"
+                            data-cost="<c:out value='${p.costPrice}'/>"
+                            data-price="<c:out value='${p.price}'/>"
+                            data-stock="<c:out value='${p.stockQuantity}'/>"
+                            data-min="<c:out value='${p.minStock}'/>"
+                            data-image="<c:out value='${p.imageUrl}'/>"
+                            onclick="handleEditProduct(this)"
+                            title="Chỉnh sửa">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                           </button>
                         </td>
@@ -206,7 +218,7 @@
       <!-- ====================================================================
            TAB 2: STOCK INFLOW APPROVALS VIEW (DUYỆT HÀNG VỀ)
            ==================================================================== -->
-      <div id="approvalsTableView" style="display: none;">
+      <div id="approvalsTableView" style="${not isApprovalsTab ? 'display: none;' : ''}">
         <!-- 3 Stat Cards -->
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
           <div class="card" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
@@ -327,7 +339,7 @@
      MODAL: CHỈNH SỬA & THÊM HÀNG HÓA
      ========================================================================== -->
 <div class="modal-backdrop" id="productEditModal">
-  <div class="modal-window" style="max-width: 650px;">
+  <div class="modal-window" style="max-width: 820px; width: 92%; max-height: 90vh; overflow-y: auto;">
     <div class="modal-header">
       <div>
         <h3 class="modal-title">Thông tin hàng hóa</h3>
@@ -338,21 +350,22 @@
 
     <form action="${pageContext.request.contextPath}/products" method="POST">
       <input type="hidden" name="action" value="save">
-      <div class="modal-body">
-        <!-- Form Rows Grid -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-          <div class="form-group">
+      <div class="modal-body" style="padding: 20px 24px;">
+        <!-- Hàng 1: Mã SKU & Tên sản phẩm -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductSku">Mã SKU *</label>
-            <input type="text" id="modalProductSku" name="sku" class="form-input" placeholder="Ví dụ: CF01" required>
+            <input type="text" id="modalProductSku" name="sku" class="form-input" placeholder="Ví dụ: AT01" required>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductName">Tên sản phẩm *</label>
-            <input type="text" id="modalProductName" name="name" class="form-input" placeholder="Ví dụ: Cà phê Arabica" required>
+            <input type="text" id="modalProductName" name="name" class="form-input" placeholder="Ví dụ: Áo thun YOLO" required>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-          <div class="form-group">
+        <!-- Hàng 2: Nhóm hàng & Đơn vị tính -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductCategory">Nhóm hàng thời trang</label>
             <select id="modalProductCategory" name="category" class="form-select">
               <option value="Áo sơ mi">Áo sơ mi</option>
@@ -363,25 +376,26 @@
               <option value="Khác">Phụ kiện / Khác</option>
             </select>
           </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductUnit">Đơn vị tính</label>
             <input type="text" id="modalProductUnit" name="unit" class="form-input" placeholder="Ví dụ: Cái, Bộ, Chiếc">
           </div>
-          <div class="form-group">
-            <label class="form-label" for="modalProductSupplier">Nhà cung cấp / Xưởng may</label>
-            <select id="modalProductSupplier" name="supplierId" class="form-select">
-              <option value="">-- Chọn Nhà cung cấp --</option>
-              <c:forEach items="${suppliers}" var="sup">
-                <option value="${sup.supplierId}">${sup.supplierName} (${sup.supplierCode})</option>
-              </c:forEach>
-            </select>
-          </div>
         </div>
 
-        <!-- Biến thể Kích cỡ (Size) và Màu sắc (Color) cho thời trang -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-          <div class="form-group">
+        <!-- Hàng 3 (DEDICATED ROW): Nhà cung cấp / Xưởng may chiếm trọn 1 dòng riêng -->
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="modalProductSupplier">Nhà cung cấp / Xưởng may</label>
+          <select id="modalProductSupplier" name="supplierId" class="form-select" style="width: 100%;">
+            <option value="">-- Chọn Nhà cung cấp / Xưởng may liên kết --</option>
+            <c:forEach items="${suppliers}" var="sup">
+              <option value="${sup.supplierId}">${sup.supplierName} (${sup.supplierCode}) · ${sup.contactPerson} - ${sup.phone}</option>
+            </c:forEach>
+          </select>
+        </div>
+
+        <!-- Hàng 4: Kích cỡ (Size) và Màu sắc (Color) cho thời trang -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductSize">Kích cỡ (Size)</label>
             <select id="modalProductSize" name="size" class="form-select">
               <option value="">-- Chọn Size --</option>
@@ -397,29 +411,31 @@
               <option value="Freesize">Freesize</option>
             </select>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductColor">Màu sắc (Color)</label>
             <input type="text" id="modalProductColor" name="color" class="form-input" placeholder="Ví dụ: Trắng, Đen, Be, Xanh Navy">
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-          <div class="form-group">
+        <!-- Hàng 5: Giá nhập & Giá bán -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductCost">Giá nhập (đ) *</label>
             <input type="number" id="modalProductCost" name="costPrice" class="form-input" placeholder="85000" required>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductPrice">Giá bán (đ) *</label>
             <input type="number" id="modalProductPrice" name="price" class="form-input" placeholder="125000" required>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-          <div class="form-group">
+        <!-- Hàng 6: Tồn kho hiện tại & Mức tồn tối thiểu -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductStock">Tồn kho hiện tại *</label>
             <input type="number" id="modalProductStock" name="stockQuantity" class="form-input" oninput="checkStockThresholdWarning()" required>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductMinStock">Mức tồn tối thiểu *</label>
             <input type="number" id="modalProductMinStock" name="minStock" class="form-input" oninput="checkStockThresholdWarning()" required>
           </div>

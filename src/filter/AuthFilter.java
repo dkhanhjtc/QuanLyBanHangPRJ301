@@ -30,6 +30,15 @@ public class AuthFilter implements Filter {
         String contextPath = req.getContextPath();
         String path = uri.substring(contextPath.length());
 
+        // Thiết lập mã hóa UTF-8 toàn hệ thống
+        req.setCharacterEncoding("UTF-8");
+        res.setCharacterEncoding("UTF-8");
+        if (!path.startsWith("/assets/") && !path.endsWith(".css") && !path.endsWith(".js")
+                && !path.endsWith(".svg") && !path.endsWith(".png") && !path.endsWith(".jpg")
+                && !path.endsWith(".ico") && !path.endsWith(".woff") && !path.endsWith(".woff2")) {
+            res.setContentType("text/html;charset=UTF-8");
+        }
+
         // 1. Cho phép truy cập tự do các tài nguyên tĩnh và trang công khai
         if (path.startsWith("/assets/") ||
             path.endsWith(".css") ||

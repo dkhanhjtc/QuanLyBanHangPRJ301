@@ -17,8 +17,16 @@ public class StocktakeDAO extends DBContext {
      */
     public List<Stocktake> getAllStocktakes() {
         List<Stocktake> list = new ArrayList<>();
-        String sql = "SELECT id, code, title, assignedTo, status, totalVariance, createdAt " +
-                     "FROM Stocktakes ORDER BY createdAt DESC";
+        String sql = "SELECT s.stocktake_id AS id, " +
+                     "       s.stocktake_code AS code, " +
+                     "       s.title, " +
+                     "       ISNULL(u.full_name, N'Nhân viên') AS assignedTo, " +
+                     "       s.status, " +
+                     "       ISNULL((SELECT SUM(d.discrepancy) FROM StocktakeDetails d WHERE d.stocktake_id = s.stocktake_id), 0) AS totalVariance, " +
+                     "       s.created_at AS createdAt " +
+                     "FROM Stocktakes s " +
+                     "LEFT JOIN Users u ON s.assigned_staff_id = u.user_id " +
+                     "ORDER BY s.created_at DESC";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
@@ -39,8 +47,16 @@ public class StocktakeDAO extends DBContext {
      * @return Stocktake đối tượng kiểm kê hoặc null
      */
     public Stocktake getStocktakeById(int id) {
-        String sql = "SELECT id, code, title, assignedTo, status, totalVariance, createdAt " +
-                     "FROM Stocktakes WHERE id = ?";
+        String sql = "SELECT s.stocktake_id AS id, " +
+                     "       s.stocktake_code AS code, " +
+                     "       s.title, " +
+                     "       ISNULL(u.full_name, N'Nhân viên') AS assignedTo, " +
+                     "       s.status, " +
+                     "       ISNULL((SELECT SUM(d.discrepancy) FROM StocktakeDetails d WHERE d.stocktake_id = s.stocktake_id), 0) AS totalVariance, " +
+                     "       s.created_at AS createdAt " +
+                     "FROM Stocktakes s " +
+                     "LEFT JOIN Users u ON s.assigned_staff_id = u.user_id " +
+                     "WHERE s.stocktake_id = ?";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -65,8 +81,16 @@ public class StocktakeDAO extends DBContext {
      * @return Stocktake đối tượng kiểm kê kèm danh sách chi tiết mặt hàng
      */
     public Stocktake getStocktakeByCode(String code) {
-        String sql = "SELECT id, code, title, assignedTo, status, totalVariance, createdAt " +
-                     "FROM Stocktakes WHERE code = ?";
+        String sql = "SELECT s.stocktake_id AS id, " +
+                     "       s.stocktake_code AS code, " +
+                     "       s.title, " +
+                     "       ISNULL(u.full_name, N'Nhân viên') AS assignedTo, " +
+                     "       s.status, " +
+                     "       ISNULL((SELECT SUM(d.discrepancy) FROM StocktakeDetails d WHERE d.stocktake_id = s.stocktake_id), 0) AS totalVariance, " +
+                     "       s.created_at AS createdAt " +
+                     "FROM Stocktakes s " +
+                     "LEFT JOIN Users u ON s.assigned_staff_id = u.user_id " +
+                     "WHERE s.stocktake_code = ?";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -92,12 +116,21 @@ public class StocktakeDAO extends DBContext {
      */
     public List<StocktakeItem> getStocktakeItems(int stocktakeId) {
         List<StocktakeItem> list = new ArrayList<>();
-        String sql = "SELECT si.id, si.stocktakeId, si.productId, si.productName, si.systemStock, " +
-                     "       si.actualStock, si.variance, si.note, p.costPrice, p.imageUrl, p.spec " +
-                     "FROM StocktakeItems si " +
-                     "JOIN Products p ON si.productId = p.id " +
-                     "WHERE si.stocktakeId = ? " +
-                     "ORDER BY si.id ASC";
+        String sql = "SELECT d.item_id AS id, " +
+                     "       d.stocktake_id AS stocktakeId, " +
+                     "       CAST(p.product_id AS VARCHAR(50)) AS productId, " +
+                     "       p.product_name AS productName, " +
+                     "       d.system_qty AS systemStock, " +
+                     "       d.actual_qty AS actualStock, " +
+                     "       d.discrepancy AS variance, " +
+                     "       d.note, " +
+                     "       p.cost_price AS costPrice, " +
+                     "       p.image_url AS imageUrl, " +
+                     "       (ISNULL(p.size, '') + ' · ' + ISNULL(p.color, '')) AS spec " +
+                     "FROM StocktakeDetails d " +
+                     "JOIN Products p ON d.product_id = p.product_id " +
+                     "WHERE d.stocktake_id = ? " +
+                     "ORDER BY d.item_id ASC";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -129,16 +162,19 @@ public class StocktakeDAO extends DBContext {
     /**
      * Duyệt kết quả đối soát kiểm kê.
      * Sử dụng Transaction:
-     * 1. Cập nhật tồn kho sản phẩm trong bảng Products bằng số lượng thực đếm (actualStock)
-     * 2. Đổi trạng thái phiếu kiểm kê thành 'COMPLETED'
+     * 1. Cập nhật tồn kho sản phẩm trong bảng Products bằng số lượng thực đếm (actual_qty)
+     * 2. Đổi trạng thái phiếu kiểm kê thành 'APPROVED'
      * 3. Commit Transaction
      * @param stocktakeId ID của đợt kiểm kê
      * @return true nếu duyệt và cân bằng kho thành công, ngược lại rollback và trả về false
      */
     public boolean approveStocktake(int stocktakeId) {
-        String getItemsSql = "SELECT productId, actualStock FROM StocktakeItems WHERE stocktakeId = ?";
-        String updateStockSql = "UPDATE Products SET stockQuantity = ? WHERE id = ?";
-        String updateStatusSql = "UPDATE Stocktakes SET status = 'COMPLETED' WHERE id = ?";
+        String updateStockSql = "UPDATE p " +
+                                "SET p.stock_qty = d.actual_qty " +
+                                "FROM Products p " +
+                                "JOIN StocktakeDetails d ON p.product_id = d.product_id " +
+                                "WHERE d.stocktake_id = ?";
+        String updateStatusSql = "UPDATE Stocktakes SET status = 'APPROVED' WHERE stocktake_id = ?";
 
         Connection con = null;
         try {
@@ -146,21 +182,9 @@ public class StocktakeDAO extends DBContext {
             con.setAutoCommit(false); // Bắt đầu Transaction
 
             // 1. Cập nhật tồn kho từng sản phẩm theo số thực đếm
-            try (PreparedStatement psGet = con.prepareStatement(getItemsSql);
-                 PreparedStatement psUpdate = con.prepareStatement(updateStockSql)) {
-
-                psGet.setInt(1, stocktakeId);
-                try (ResultSet rs = psGet.executeQuery()) {
-                    while (rs.next()) {
-                        String prodId = rs.getString("productId");
-                        int actualStock = rs.getInt("actualStock");
-
-                        psUpdate.setInt(1, actualStock);
-                        psUpdate.setString(2, prodId);
-                        psUpdate.addBatch();
-                    }
-                }
-                psUpdate.executeBatch();
+            try (PreparedStatement psStock = con.prepareStatement(updateStockSql)) {
+                psStock.setInt(1, stocktakeId);
+                psStock.executeUpdate();
             }
 
             // 2. Đổi trạng thái phiếu kiểm kê

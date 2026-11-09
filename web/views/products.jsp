@@ -3,7 +3,6 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <c:set var="activeMenu" value="products" />
-<c:set var="currentRole" value="manager" />
 <c:set var="breadcrumbCurrent" value="Hàng hóa" />
 
 <!DOCTYPE html>
@@ -62,10 +61,14 @@
         <div>
           <h1 style="font-size: 1.85rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">Quản lý hàng hóa</h1>
           <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
-            8 sản phẩm · 163 đơn vị tồn kho · Giá trị vốn 7.492.000 đ
+            ${totalProductsCount != null ? totalProductsCount : 0} sản phẩm · ${totalUnits != null ? totalUnits : 0} đơn vị tồn kho · Giá trị vốn <fmt:formatNumber value="${totalInventoryCapital != null ? totalInventoryCapital : 0}" pattern="#,###"/> đ
           </div>
         </div>
         <div style="display: flex; gap: 10px;">
+          <a href="${pageContext.request.contextPath}/products" class="btn btn-outline" title="Làm mới danh sách">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            <span>Đồng bộ</span>
+          </a>
           <button type="button" class="btn btn-outline" onclick="alert('Đang trích xuất danh sách hàng hóa ra file Excel...')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
             <span>Xuất danh sách</span>
@@ -84,7 +87,7 @@
         </button>
         <button type="button" class="sub-nav-tab" id="tabBtnApprovals" onclick="switchProductTab('approvals')">
           <span>Duyệt hàng về</span>
-          <span class="badge badge-primary" style="font-size: 0.7rem; padding: 2px 7px;">3</span>
+          <span class="badge badge-primary" style="font-size: 0.7rem; padding: 2px 7px;">${pendingPOCount != null ? pendingPOCount : 0}</span>
         </button>
       </div>
 
@@ -98,28 +101,25 @@
             <div style="display: flex; gap: 12px; align-items: center; flex: 1; max-width: 650px;">
               <div class="input-icon-wrapper" style="flex: 1;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" class="form-input" placeholder="Tìm tên sản phẩm hoặc SKU...">
+                <input type="text" class="form-input" placeholder="Tìm tên sản phẩm hoặc SKU..." id="filterProductInput" oninput="filterProductTable(this.value)">
               </div>
-              <button type="button" class="btn btn-outline" style="font-size: 0.85rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
-                <span>Tất cả nhóm hàng</span>
-              </button>
-              <select class="form-select" style="width: auto; font-size: 0.85rem;">
-                <option value="all">Trạng thái: Tất cả</option>
-                <option value="low">Chạm đáy</option>
-                <option value="sufficient">Đủ hàng</option>
+              <select class="form-select" style="width: auto; font-size: 0.85rem;" onchange="location.href='${pageContext.request.contextPath}/products?category=' + this.value">
+                <option value="all" ${param.category == null || param.category eq 'all' ? 'selected' : ''}>Tất cả nhóm hàng</option>
+                <option value="coffee" ${param.category eq 'coffee' ? 'selected' : ''}>Cà phê &amp; trà</option>
+                <option value="drinks" ${param.category eq 'drinks' ? 'selected' : ''}>Đồ uống</option>
+                <option value="food" ${param.category eq 'food' ? 'selected' : ''}>Thực phẩm</option>
               </select>
             </div>
             <div>
               <span class="badge" style="background: #fef2f2; color: #ef4444; font-size: 0.8rem; padding: 6px 12px; font-weight: 700;">
-                2 hàng chạm đáy
+                ${lowStockCount != null ? lowStockCount : 0} hàng chạm đáy
               </span>
             </div>
           </div>
 
-          <!-- Inventory Table -->
+          <!-- Inventory Table (Truy vấn từ CSDL, Không hardcode) -->
           <div class="table-responsive">
-            <table class="custom-table">
+            <table class="custom-table" id="productMasterTable">
               <thead>
                 <tr>
                   <th style="width: 50px;">Ảnh</th>
@@ -137,14 +137,14 @@
                 <c:choose>
                   <c:when test="${not empty products}">
                     <c:forEach items="${products}" var="p">
-                      <tr>
+                      <tr class="product-data-row" data-name="${p.name}" data-sku="${p.sku}">
                         <td>
-                          <img src="${pageContext.request.contextPath}/assets/images/${p.image}" alt="${p.name}" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;">
+                          <img src="${pageContext.request.contextPath}/assets/images/${p.imageUrl != null ? p.imageUrl : 'CF01.svg'}" alt="${p.name}" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;">
                         </td>
                         <td style="font-weight: 600; color: #0f172a;">${p.sku}</td>
                         <td>
                           <div style="font-weight: 600; color: #0f172a;">${p.name}</div>
-                          <div style="font-size: 0.72rem; color: #64748b;">${p.spec} · ${p.category}</div>
+                          <div style="font-size: 0.72rem; color: #64748b;">${p.spec != null ? p.spec : p.unit} · ${p.category}</div>
                         </td>
                         <td><fmt:formatNumber value="${p.costPrice}" pattern="#,###"/> đ</td>
                         <td style="font-weight: 600;"><fmt:formatNumber value="${p.price}" pattern="#,###"/> đ</td>
@@ -165,172 +165,19 @@
                           </c:choose>
                         </td>
                         <td style="text-align: right;">
-                          <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('${p.sku}', '${p.name}', '${p.category}', '${p.unit}', '${p.costPrice}', '${p.price}', '${p.stockQuantity}', '${p.minStock}', '${p.image}')" title="Chỉnh sửa">
+                          <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('${p.sku}', '${p.name}', '${p.category}', '${p.unit}', '${p.costPrice}', '${p.price}', '${p.stockQuantity}', '${p.minStock}', '${p.imageUrl != null ? p.imageUrl : (p.sku + \".svg\")}')" title="Chỉnh sửa">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                           </button>
                         </td>
                       </tr>
                     </c:forEach>
                   </c:when>
-
                   <c:otherwise>
-                    <!-- Row 1: Cà phê Arabica -->
                     <tr>
-                      <td><img src="${pageContext.request.contextPath}/assets/images/CF01.svg" alt="CF01" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;"></td>
-                      <td style="font-weight: 600; color: #0f172a;">CF01</td>
-                      <td>
-                        <div style="font-weight: 600; color: #0f172a;">Cà phê Arabica</div>
-                        <div style="font-size: 0.72rem; color: #64748b;">Gói 250g · Cà phê &amp; trà</div>
-                      </td>
-                      <td>85.000 đ</td>
-                      <td style="font-weight: 600;">125.000 đ</td>
-                      <td style="font-weight: 700; color: #0f172a;">24</td>
-                      <td>10</td>
-                      <td><span class="badge badge-success">Đủ hàng</span></td>
-                      <td style="text-align: right;">
-                        <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('CF01', 'Cà phê Arabica', 'coffee', 'Gói 250g', '85000', '125000', '24', '10', 'CF01.svg')">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <!-- Row 2: Trà sen -->
-                    <tr>
-                      <td><img src="${pageContext.request.contextPath}/assets/images/TE01.svg" alt="TE01" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;"></td>
-                      <td style="font-weight: 600; color: #0f172a;">TE01</td>
-                      <td>
-                        <div style="font-weight: 600; color: #0f172a;">Trà sen</div>
-                        <div style="font-size: 0.72rem; color: #64748b;">Hộp 100g · Cà phê &amp; trà</div>
-                      </td>
-                      <td>60.000 đ</td>
-                      <td style="font-weight: 600;">89.000 đ</td>
-                      <td style="font-weight: 700; color: #0f172a;">18</td>
-                      <td>8</td>
-                      <td><span class="badge badge-success">Đủ hàng</span></td>
-                      <td style="text-align: right;">
-                        <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('TE01', 'Trà sen', 'coffee', 'Hộp 100g', '60000', '89000', '18', '8', 'TE01.svg')">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <!-- Row 3: Sữa yến mạch (Chạm đáy) -->
-                    <tr>
-                      <td><img src="${pageContext.request.contextPath}/assets/images/MK01.svg" alt="MK01" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;"></td>
-                      <td style="font-weight: 600; color: #0f172a;">MK01</td>
-                      <td>
-                        <div style="font-weight: 600; color: #0f172a;">Sữa yến mạch</div>
-                        <div style="font-size: 0.72rem; color: #64748b;">Hộp 1L · Đồ uống</div>
-                      </td>
-                      <td>42.000 đ</td>
-                      <td style="font-weight: 600;">59.000 đ</td>
-                      <td style="font-weight: 700; color: #ef4444;">8</td>
-                      <td>8</td>
-                      <td><span class="badge badge-danger">Chạm đáy</span></td>
-                      <td style="text-align: right;">
-                        <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('MK01', 'Sữa yến mạch', 'drinks', 'Hộp 1L', '42000', '59000', '8', '8', 'MK01.svg')">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <!-- Row 4: Mật ong hoa nhãn -->
-                    <tr>
-                      <td><img src="${pageContext.request.contextPath}/assets/images/HN01.svg" alt="HN01" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;"></td>
-                      <td style="font-weight: 600; color: #0f172a;">HN01</td>
-                      <td>
-                        <div style="font-weight: 600; color: #0f172a;">Mật ong hoa nhãn</div>
-                        <div style="font-size: 0.72rem; color: #64748b;">Chai 500ml · Thực phẩm</div>
-                      </td>
-                      <td>95.000 đ</td>
-                      <td style="font-weight: 600;">145.000 đ</td>
-                      <td style="font-weight: 700; color: #0f172a;">12</td>
-                      <td>5</td>
-                      <td><span class="badge badge-success">Đủ hàng</span></td>
-                      <td style="text-align: right;">
-                        <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('HN01', 'Mật ong hoa nhãn', 'food', 'Chai 500ml', '95000', '145000', '12', '5', 'HN01.svg')">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <!-- Row 5: Granola hạt (Chạm đáy) -->
-                    <tr>
-                      <td><img src="${pageContext.request.contextPath}/assets/images/GR01.svg" alt="GR01" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;"></td>
-                      <td style="font-weight: 600; color: #0f172a;">GR01</td>
-                      <td>
-                        <div style="font-weight: 600; color: #0f172a;">Granola hạt</div>
-                        <div style="font-size: 0.72rem; color: #64748b;">Gói 300g · Thực phẩm</div>
-                      </td>
-                      <td>65.000 đ</td>
-                      <td style="font-weight: 600;">99.000 đ</td>
-                      <td style="font-weight: 700; color: #ef4444;">6</td>
-                      <td>6</td>
-                      <td><span class="badge badge-danger">Chạm đáy</span></td>
-                      <td style="text-align: right;">
-                        <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('GR01', 'Granola hạt', 'food', 'Gói 300g', '65000', '99000', '6', '6', 'GR01.svg')">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <!-- Row 6: Bánh quy bơ -->
-                    <tr>
-                      <td><img src="${pageContext.request.contextPath}/assets/images/CK01.svg" alt="CK01" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;"></td>
-                      <td style="font-weight: 600; color: #0f172a;">CK01</td>
-                      <td>
-                        <div style="font-weight: 600; color: #0f172a;">Bánh quy bơ</div>
-                        <div style="font-size: 0.72rem; color: #64748b;">Hộp 200g · Thực phẩm</div>
-                      </td>
-                      <td>38.000 đ</td>
-                      <td style="font-weight: 600;">65.000 đ</td>
-                      <td style="font-weight: 700; color: #0f172a;">32</td>
-                      <td>10</td>
-                      <td><span class="badge badge-success">Đủ hàng</span></td>
-                      <td style="text-align: right;">
-                        <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('CK01', 'Bánh quy bơ', 'food', 'Hộp 200g', '38000', '65000', '32', '10', 'CK01.svg')">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <!-- Row 7: Nước khoáng -->
-                    <tr>
-                      <td><img src="${pageContext.request.contextPath}/assets/images/WA01.svg" alt="WA01" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;"></td>
-                      <td style="font-weight: 600; color: #0f172a;">WA01</td>
-                      <td>
-                        <div style="font-weight: 600; color: #0f172a;">Nước khoáng</div>
-                        <div style="font-size: 0.72rem; color: #64748b;">Chai 500ml · Đồ uống</div>
-                      </td>
-                      <td>5.000 đ</td>
-                      <td style="font-weight: 600;">10.000 đ</td>
-                      <td style="font-weight: 700; color: #0f172a;">48</td>
-                      <td>12</td>
-                      <td><span class="badge badge-success">Đủ hàng</span></td>
-                      <td style="text-align: right;">
-                        <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('WA01', 'Nước khoáng', 'drinks', 'Chai 500ml', '5000', '10000', '48', '12', 'WA01.svg')">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        </button>
-                      </td>
-                    </tr>
-
-                    <!-- Row 8: Cacao nguyên chất -->
-                    <tr>
-                      <td><img src="${pageContext.request.contextPath}/assets/images/CC01.svg" alt="CC01" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;"></td>
-                      <td style="font-weight: 600; color: #0f172a;">CC01</td>
-                      <td>
-                        <div style="font-weight: 600; color: #0f172a;">Cacao nguyên chất</div>
-                        <div style="font-size: 0.72rem; color: #64748b;">Gói 200g · Cà phê &amp; trà</div>
-                      </td>
-                      <td>70.000 đ</td>
-                      <td style="font-weight: 600;">105.000 đ</td>
-                      <td style="font-weight: 700; color: #0f172a;">15</td>
-                      <td>5</td>
-                      <td><span class="badge badge-success">Đủ hàng</span></td>
-                      <td style="text-align: right;">
-                        <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="openProductEditModal('CC01', 'Cacao nguyên chất', 'coffee', 'Gói 200g', '70000', '105000', '15', '5', 'CC01.svg')">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                        </button>
+                      <td colspan="9" style="text-align: center; padding: 48px 10px; color: #94a3b8;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+                        <div style="font-weight: 600;">Không tìm thấy sản phẩm nào trong kho</div>
+                        <div style="font-size: 0.75rem;">Nhấn "Thêm hàng hóa" để thêm sản phẩm mới vào danh mục</div>
                       </td>
                     </tr>
                   </c:otherwise>
@@ -341,19 +188,14 @@
 
           <!-- Pagination Bar -->
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid var(--border); font-size: 0.8rem; color: #64748b;">
-            <div>Hiển thị 1–8 trong 8 sản phẩm</div>
-            <div style="display: flex; gap: 6px;">
-              <button type="button" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.75rem;">&lt;</button>
-              <button type="button" class="btn btn-primary" style="padding: 4px 10px; font-size: 0.75rem;">1</button>
-              <button type="button" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.75rem;">&gt;</button>
-            </div>
+            <div>Hiển thị ${products != null ? products.size() : 0} sản phẩm trong kho</div>
           </div>
         </div>
 
         <!-- Footnote Info -->
         <div style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #64748b; margin-top: 16px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          <span>Nhãn “Chạm đáy” xuất hiện khi Tồn kho &le; Mức tồn tối thiểu. Chỉ hàng về đã duyệt mới được cộng vào tồn.</span>
+          <span>Nhãn “Chạm đáy” xuất hiện khi Tồn kho &le; Mức tồn tối thiểu. Chỉ hàng về đã duyệt mới được cộng vào tồn kho.</span>
         </div>
       </div>
 
@@ -369,7 +211,7 @@
             </div>
             <div>
               <div style="font-size: 0.75rem; color: #64748b;">Phiếu chờ duyệt</div>
-              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">03 phiếu</div>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">${pendingPOCount != null ? pendingPOCount : 0} phiếu</div>
             </div>
           </div>
 
@@ -379,7 +221,7 @@
             </div>
             <div>
               <div style="font-size: 0.75rem; color: #64748b;">Số lượng chờ nhập</div>
-              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">56 đơn vị</div>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">${pendingQty != null ? pendingQty : 0} đơn vị</div>
             </div>
           </div>
 
@@ -389,32 +231,16 @@
             </div>
             <div>
               <div style="font-size: 0.75rem; color: #64748b;">Tổng giá trị nhập đề nghị</div>
-              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">3.328.000 <span style="text-decoration: underline;">đ</span></div>
+              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;"><fmt:formatNumber value="${pendingCost != null ? pendingCost : 0}" pattern="#,###"/> <span style="text-decoration: underline;">đ</span></div>
             </div>
           </div>
         </div>
 
-        <!-- Alert Notice -->
-        <div style="display: flex; align-items: center; gap: 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 18px; margin-bottom: 20px; font-size: 0.825rem; color: #1e40af;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <span>Duyệt phiếu sẽ cộng số lượng thực nhận vào tồn kho ngay lập tức. Từ chối không thay đổi tồn kho và bắt buộc có lý do.</span>
-        </div>
-
-        <!-- Inflow Table Card -->
+        <!-- Inflow Table Card (Truy vấn từ CSDL, Không hardcode) -->
         <div class="card" style="margin-bottom: 24px;">
           <div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);">
-            <div style="display: flex; gap: 12px; align-items: center; flex: 1; max-width: 650px;">
-              <div class="input-icon-wrapper" style="flex: 1;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" class="form-input" placeholder="Tìm mã phiếu, sản phẩm, nhà cung cấp...">
-              </div>
-              <select class="form-select" style="width: auto;">
-                <option value="pending">Chờ duyệt · 3</option>
-              </select>
-              <button type="button" class="btn btn-outline" style="font-size: 0.85rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
-                <span>27/10/2026</span>
-              </button>
+            <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a;">
+              Danh sách phiếu hàng về chờ quyết định
             </div>
             <div style="font-size: 0.8rem; color: #64748b; font-weight: 500;">
               Chỉ Quản lý được duyệt
@@ -435,136 +261,57 @@
                 </tr>
               </thead>
               <tbody>
-                <!-- Row PN-026 -->
-                <tr id="ticket-row-PN-026">
-                  <td>
-                    <div style="font-weight: 700; color: #2563eb;">PN-026</div>
-                    <div style="font-size: 0.72rem; color: #64748b;">09:40 · 27/10</div>
-                    <span class="badge badge-warning" style="margin-top: 4px; font-size: 0.7rem;">Chờ duyệt</span>
-                  </td>
-                  <td>
-                    <div style="font-weight: 600; color: #0f172a;">Oats Việt</div>
-                    <div style="font-size: 0.72rem; color: #64748b;">NCC-003</div>
-                  </td>
-                  <td>
-                    <div style="font-weight: 600; color: #0f172a;">Sữa yến mạch</div>
-                    <div style="font-size: 0.72rem; color: #64748b;">MK01 · 1.008.000 đ</div>
-                  </td>
-                  <td style="font-weight: 700; color: #0f172a;">+24</td>
-                  <td style="color: #0f172a;">Lê Lan Anh</td>
-                  <td>
-                    <div style="font-weight: 700; color: #2563eb;">8 &rarr; 32</div>
-                    <div style="font-size: 0.7rem; color: #94a3b8;">Chưa cộng kho</div>
-                  </td>
-                  <td style="text-align: right;">
-                    <button type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="approveInflow('PN-026', 'Sữa yến mạch', 24)">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span>Duyệt</span>
-                    </button>
-                    <button type="button" class="btn btn-danger-outline" style="padding: 6px 14px; font-size: 0.8rem;" onclick="openRejectModal('PN-026', 'Sữa yến mạch', 'Oats Việt', 'Lê Lan Anh', 24, 8)">
-                      <span>Từ chối</span>
-                    </button>
-                  </td>
-                </tr>
-
-                <!-- Row PN-025 -->
-                <tr id="ticket-row-PN-025">
-                  <td>
-                    <div style="font-weight: 700; color: #2563eb;">PN-025</div>
-                    <div style="font-size: 0.72rem; color: #64748b;">09:10 · 27/10</div>
-                    <span class="badge badge-warning" style="margin-top: 4px; font-size: 0.7rem;">Chờ duyệt</span>
-                  </td>
-                  <td>
-                    <div style="font-weight: 600; color: #0f172a;">Hạt Lành</div>
-                    <div style="font-size: 0.72rem; color: #64748b;">NCC-005</div>
-                  </td>
-                  <td>
-                    <div style="font-weight: 600; color: #0f172a;">Granola hạt</div>
-                    <div style="font-size: 0.72rem; color: #64748b;">GR01 · 1.300.000 đ</div>
-                  </td>
-                  <td style="font-weight: 700; color: #0f172a;">+20</td>
-                  <td style="color: #0f172a;">Trần Quốc Bảo</td>
-                  <td>
-                    <div style="font-weight: 700; color: #2563eb;">6 &rarr; 26</div>
-                    <div style="font-size: 0.7rem; color: #94a3b8;">Chưa cộng kho</div>
-                  </td>
-                  <td style="text-align: right;">
-                    <button type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="approveInflow('PN-025', 'Granola hạt', 20)">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span>Duyệt</span>
-                    </button>
-                    <button type="button" class="btn btn-danger-outline" style="padding: 6px 14px; font-size: 0.8rem;" onclick="openRejectModal('PN-025', 'Granola hạt', 'Hạt Lành', 'Trần Quốc Bảo', 20, 6)">
-                      <span>Từ chối</span>
-                    </button>
-                  </td>
-                </tr>
-
-                <!-- Row PN-024 -->
-                <tr id="ticket-row-PN-024">
-                  <td>
-                    <div style="font-weight: 700; color: #2563eb;">PN-024</div>
-                    <div style="font-size: 0.72rem; color: #64748b;">08:45 · 27/10</div>
-                    <span class="badge badge-warning" style="margin-top: 4px; font-size: 0.7rem;">Chờ duyệt</span>
-                  </td>
-                  <td>
-                    <div style="font-weight: 600; color: #0f172a;">Cao Nguyên</div>
-                    <div style="font-size: 0.72rem; color: #64748b;">NCC-001</div>
-                  </td>
-                  <td>
-                    <div style="font-weight: 600; color: #0f172a;">Cà phê Arabica</div>
-                    <div style="font-size: 0.72rem; color: #64748b;">CF01 · 1.020.000 đ</div>
-                  </td>
-                  <td style="font-weight: 700; color: #0f172a;">+12</td>
-                  <td style="color: #0f172a;">Lê Lan Anh</td>
-                  <td>
-                    <div style="font-weight: 700; color: #2563eb;">24 &rarr; 36</div>
-                    <div style="font-size: 0.7rem; color: #94a3b8;">Chưa cộng kho</div>
-                  </td>
-                  <td style="text-align: right;">
-                    <button type="button" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="approveInflow('PN-024', 'Cà phê Arabica', 12)">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      <span>Duyệt</span>
-                    </button>
-                    <button type="button" class="btn btn-danger-outline" style="padding: 6px 14px; font-size: 0.8rem;" onclick="openRejectModal('PN-024', 'Cà phê Arabica', 'Cao Nguyên', 'Lê Lan Anh', 12, 24)">
-                      <span>Từ chối</span>
-                    </button>
-                  </td>
-                </tr>
+                <c:choose>
+                  <c:when test="${not empty pendingPOs}">
+                    <c:forEach items="${pendingPOs}" var="po">
+                      <tr id="ticket-row-${po.code}">
+                        <td>
+                          <div style="font-weight: 700; color: #2563eb;">${po.code}</div>
+                          <div style="font-size: 0.72rem; color: #64748b;">${po.formattedDate}</div>
+                          <span class="badge badge-warning" style="margin-top: 4px; font-size: 0.7rem;">Chờ duyệt</span>
+                        </td>
+                        <td>
+                          <div style="font-weight: 600; color: #0f172a;">${po.supplierName}</div>
+                        </td>
+                        <td>
+                          <div style="font-weight: 600; color: #0f172a;">${po.productName}</div>
+                          <div style="font-size: 0.72rem; color: #64748b;">${po.productId} · <fmt:formatNumber value="${po.totalCost}" pattern="#,###"/> đ</div>
+                        </td>
+                        <td style="font-weight: 700; color: #0f172a;">+${po.totalQuantity}</td>
+                        <td style="color: #0f172a;">${po.createdByName}</td>
+                        <td>
+                          <div style="font-weight: 700; color: #2563eb;">${po.stockBefore} &rarr; ${po.stockAfter}</div>
+                          <div style="font-size: 0.7rem; color: #94a3b8;">Chưa cộng kho</div>
+                        </td>
+                        <td style="text-align: right;">
+                          <form action="${pageContext.request.contextPath}/products" method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="approve_inflow">
+                            <input type="hidden" name="poId" value="${po.id}">
+                            <input type="hidden" name="poCode" value="${po.code}">
+                            <button type="submit" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="return confirm('Xác nhận DUYỆT phiếu ${po.code} và cộng +${po.totalQuantity} vào tồn kho?')">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                              <span>Duyệt</span>
+                            </button>
+                          </form>
+                          <button type="button" class="btn btn-danger-outline" style="padding: 6px 14px; font-size: 0.8rem;" onclick="openRejectModal('${po.id}', '${po.code}', '${po.productName}', '${po.supplierName}', '${po.createdByName}', ${po.totalQuantity}, ${po.stockBefore})">
+                            <span>Từ chối</span>
+                          </button>
+                        </td>
+                      </tr>
+                    </c:forEach>
+                  </c:when>
+                  <c:otherwise>
+                    <tr>
+                      <td colspan="7" style="text-align: center; padding: 48px 10px; color: #94a3b8;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;"><polyline points="20 6 9 17 4 12"/></svg>
+                        <div style="font-weight: 600;">Không có phiếu nhập kho nào đang chờ duyệt</div>
+                        <div style="font-size: 0.75rem;">Khi có hàng về gửi từ nhà cung cấp, thông tin sẽ xuất hiện tại đây</div>
+                      </td>
+                    </tr>
+                  </c:otherwise>
+                </c:choose>
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <!-- History Bottom Card (Vừa xử lý hôm nay) -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">Vừa xử lý hôm nay</div>
-            <a href="javascript:void(0)" onclick="alert('Đang mở toàn bộ nhật ký duyệt kho...')" style="font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-              <span>Xem lịch sử</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </a>
-          </div>
-          <div class="card-body" style="display: flex; flex-direction: column; gap: 14px;">
-            <!-- Processed Item 1 -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
-              <div>
-                <div style="font-size: 0.875rem; font-weight: 600; color: #0f172a;">PN-022 · Trà sen · +10 hộp · Tồn 8 &rarr; 18</div>
-                <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Minh Hà · 08:20</div>
-              </div>
-              <span class="badge badge-success">Đã duyệt</span>
-            </div>
-
-            <!-- Processed Item 2 (Rejected) -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <div>
-                <div style="font-size: 0.875rem; font-weight: 600; color: #0f172a;">PN-023 · Nước khoáng · 36 chai · Không cộng kho</div>
-                <div style="font-size: 0.75rem; color: #dc2626; margin-top: 3px;">
-                  Lý do: 6 chai bị hở nắp, cần đổi lại lô hàng.
-                </div>
-                <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Minh Hà · 08:35</div>
-              </div>
-              <span class="badge badge-danger">Đã từ chối</span>
-            </div>
           </div>
         </div>
       </div>
@@ -579,90 +326,68 @@
   <div class="modal-window" style="max-width: 650px;">
     <div class="modal-header">
       <div>
-        <h3 class="modal-title">Chỉnh sửa hàng hóa</h3>
-        <div class="modal-sub" id="modalProductSubtitle">MK01 · Sữa yến mạch · Cập nhật thông tin trong danh mục</div>
+        <h3 class="modal-title">Thông tin hàng hóa</h3>
+        <div class="modal-sub" id="modalProductSubtitle">Cập nhật thông tin trong danh mục</div>
       </div>
       <button type="button" class="modal-close" onclick="closeModal('productEditModal')">&times;</button>
     </div>
 
-    <form action="${pageContext.request.contextPath}/products" method="POST" enctype="multipart/form-data" onsubmit="event.preventDefault(); alert('Lưu thông tin sản phẩm thành công!'); closeModal('productEditModal');">
+    <form action="${pageContext.request.contextPath}/products" method="POST">
+      <input type="hidden" name="action" value="save">
       <div class="modal-body">
-        <!-- Image Preview & Upload Dropzone -->
-        <div class="form-group">
-          <label class="form-label">Ảnh sản phẩm</label>
-          <div style="display: flex; gap: 16px; align-items: center;">
-            <div style="width: 100px; height: 100px; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; background: #f8fafc; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-              <img id="productImagePreview" src="${pageContext.request.contextPath}/assets/images/MK01.svg" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">
-            </div>
-            
-            <div class="upload-dropzone" style="flex: 1;" onclick="document.getElementById('productImageInput').click()">
-              <input type="file" id="productImageInput" name="productImage" accept="image/*" style="display: none;" onchange="previewSelectedImage(this)">
-              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                <span class="upload-prompt">Tải ảnh lên hoặc kéo thả vào đây</span>
-              </div>
-              <div class="upload-hint">JPG, PNG · Tối đa 5 MB · Tỷ lệ khuyến nghị 1:1</div>
-            </div>
-          </div>
-        </div>
-
         <!-- Form Rows Grid -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
           <div class="form-group">
-            <label class="form-label">Mã SKU *</label>
-            <input type="text" id="modalProductSku" class="form-input" required>
+            <label class="form-label" for="modalProductSku">Mã SKU *</label>
+            <input type="text" id="modalProductSku" name="sku" class="form-input" placeholder="Ví dụ: CF01" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Tên sản phẩm *</label>
-            <input type="text" id="modalProductName" class="form-input" required>
+            <label class="form-label" for="modalProductName">Tên sản phẩm *</label>
+            <input type="text" id="modalProductName" name="name" class="form-input" placeholder="Ví dụ: Cà phê Arabica" required>
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
           <div class="form-group">
-            <label class="form-label">Nhóm hàng</label>
-            <select id="modalProductCategory" class="form-select">
+            <label class="form-label" for="modalProductCategory">Nhóm hàng</label>
+            <select id="modalProductCategory" name="category" class="form-select">
               <option value="coffee">Cà phê &amp; trà</option>
               <option value="drinks">Đồ uống</option>
               <option value="food">Thực phẩm</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Đơn vị tính</label>
-            <input type="text" id="modalProductUnit" class="form-input" placeholder="Ví dụ: Hộp 1L">
+            <label class="form-label" for="modalProductUnit">Đơn vị tính</label>
+            <input type="text" id="modalProductUnit" name="unit" class="form-input" placeholder="Ví dụ: Gói 250g, Hộp 1L">
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
           <div class="form-group">
-            <label class="form-label">Giá nhập (đ) *</label>
-            <input type="number" id="modalProductCost" class="form-input" required>
+            <label class="form-label" for="modalProductCost">Giá nhập (đ) *</label>
+            <input type="number" id="modalProductCost" name="costPrice" class="form-input" placeholder="85000" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Giá bán (đ) *</label>
-            <input type="number" id="modalProductPrice" class="form-input" required>
+            <label class="form-label" for="modalProductPrice">Giá bán (đ) *</label>
+            <input type="number" id="modalProductPrice" name="price" class="form-input" placeholder="125000" required>
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
           <div class="form-group">
-            <label class="form-label">Tồn kho hiện tại *</label>
-            <input type="number" id="modalProductStock" class="form-input" oninput="checkStockThresholdWarning()" required>
+            <label class="form-label" for="modalProductStock">Tồn kho hiện tại *</label>
+            <input type="number" id="modalProductStock" name="stockQuantity" class="form-input" oninput="checkStockThresholdWarning()" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Mức tồn tối thiểu *</label>
-            <input type="number" id="modalProductMinStock" class="form-input" oninput="checkStockThresholdWarning()" required>
+            <label class="form-label" for="modalProductMinStock">Mức tồn tối thiểu *</label>
+            <input type="number" id="modalProductMinStock" name="minStock" class="form-input" oninput="checkStockThresholdWarning()" required>
           </div>
         </div>
 
         <!-- Dynamic Stock Warning Banner -->
         <div id="modalStockWarning" style="display: none; align-items: center; gap: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px; margin-top: 8px; font-size: 0.8rem; color: #b45309;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span>Tồn kho hiện tại bằng mức tối thiểu. Sản phẩm đang được gắn nhãn “Chạm đáy”.</span>
-        </div>
-
-        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 14px;">
-          * Trường bắt buộc. Thay đổi tồn kho cần có lý do và được lưu trong nhật ký; ưu tiên điều chỉnh qua kiểm kê.
+          <span>Tồn kho hiện tại bằng hoặc dưới mức tối thiểu. Sản phẩm sẽ được gắn nhãn “Chạm đáy”.</span>
         </div>
       </div>
 
@@ -670,7 +395,7 @@
         <button type="button" class="btn btn-outline" onclick="closeModal('productEditModal')">Hủy</button>
         <button type="submit" class="btn btn-primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          <span>Lưu thay đổi</span>
+          <span>Lưu thông tin</span>
         </button>
       </div>
     </form>
@@ -685,48 +410,77 @@
     <div class="modal-header">
       <div>
         <h3 class="modal-title">Từ chối phiếu <span id="rejectTicketIdTitle">PN-025</span></h3>
-        <div class="modal-sub" id="rejectTicketSub">Granola hạt · Nhà cung cấp Hạt Lành · Người gửi: Trần Quốc Bảo</div>
+        <div class="modal-sub" id="rejectTicketSub">Nhập lý do từ chối phiếu hàng về</div>
       </div>
       <button type="button" class="modal-close" onclick="closeModal('rejectTicketModal')">&times;</button>
     </div>
 
-    <div class="modal-body">
-      <!-- Summary Box -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-        <div>
-          <div style="font-size: 0.75rem; color: #64748b;">Số lượng đề nghị</div>
-          <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a;" id="rejectQtyDisplay">20 gói</div>
+    <form action="${pageContext.request.contextPath}/products" method="POST" id="rejectForm">
+      <input type="hidden" name="action" value="reject_inflow">
+      <input type="hidden" name="poId" id="rejectPoIdInput">
+      <input type="hidden" name="poCode" id="rejectPoCodeInput">
+
+      <div class="modal-body">
+        <!-- Summary Box -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+          <div>
+            <div style="font-size: 0.75rem; color: #64748b;">Số lượng đề nghị</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a;" id="rejectQtyDisplay">0 đơn vị</div>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; color: #64748b;">Tồn kho hiện tại</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a;" id="rejectStockDisplay">0 đơn vị</div>
+          </div>
         </div>
-        <div>
-          <div style="font-size: 0.75rem; color: #64748b;">Tồn kho sau từ chối</div>
-          <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a;" id="rejectStockDisplay">6 gói</div>
+
+        <!-- Textarea Reason with Validation -->
+        <div class="form-group">
+          <label class="form-label" for="rejectReasonInput">Lý do từ chối *</label>
+          <textarea id="rejectReasonInput" name="rejectReason" class="form-textarea" rows="4" placeholder="Nhập lý do cụ thể để người gửi kiểm tra lại..." required></textarea>
+        </div>
+
+        <!-- Warning Box -->
+        <div style="display: flex; align-items: flex-start; gap: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px; margin-top: 14px; font-size: 0.8rem; color: #b45309;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div>Phiếu bị từ chối sẽ không cộng số lượng vào kho. Lý do được ghi lại trong Nhật ký hoạt động.</div>
         </div>
       </div>
 
-      <!-- Textarea Reason with Validation -->
-      <div class="form-group">
-        <label class="form-label" for="rejectReasonInput">Lý do từ chối *</label>
-        <textarea id="rejectReasonInput" class="form-textarea" rows="4" placeholder="Nhập lý do cụ thể để nhân viên kiểm tra lại lô hàng..."></textarea>
-        <div class="invalid-feedback" id="rejectReasonError" style="display: none;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>Vui lòng nhập lý do từ chối.</span>
-        </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('rejectTicketModal')">Hủy</button>
+        <button type="submit" class="btn btn-primary">Xác nhận từ chối</button>
       </div>
-
-      <!-- Warning Box -->
-      <div style="display: flex; align-items: flex-start; gap: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px; margin-top: 14px; font-size: 0.8rem; color: #b45309;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <div>Phiếu bị từ chối sẽ không cộng số lượng vào kho. Lý do được gửi cho nhân viên và lưu vào Nhật ký hoạt động.</div>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button type="button" class="btn btn-outline" onclick="closeModal('rejectTicketModal')">Hủy</button>
-      <button type="button" class="btn btn-primary" onclick="submitRejection()">Xác nhận từ chối</button>
-    </div>
+    </form>
   </div>
 </div>
 
 <script src="${pageContext.request.contextPath}/assets/js/products.js"></script>
-<jsp:include page="/common/footer.jsp" />
+<script>
+  function openRejectModal(id, code, productName, supplier, sender, qty, currentStock) {
+    document.getElementById('rejectPoIdInput').value = id;
+    document.getElementById('rejectPoCodeInput').value = code;
+    document.getElementById('rejectTicketIdTitle').textContent = code;
+    document.getElementById('rejectTicketSub').textContent = productName + ' · Nhà cung cấp ' + supplier + ' · Người gửi: ' + sender;
+    document.getElementById('rejectQtyDisplay').textContent = qty + ' đơn vị';
+    document.getElementById('rejectStockDisplay').textContent = currentStock + ' đơn vị';
+    document.getElementById('rejectReasonInput').value = '';
+    openModal('rejectTicketModal');
+  }
 
+  function filterProductTable(query) {
+    var q = query.trim().toLowerCase();
+    var rows = document.querySelectorAll('.product-data-row');
+    rows.forEach(function(row) {
+      var name = (row.getAttribute('data-name') || '').toLowerCase();
+      var sku = (row.getAttribute('data-sku') || '').toLowerCase();
+      if (name.indexOf(q) !== -1 || sku.indexOf(q) !== -1) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+</script>
+<jsp:include page="/common/footer.jsp" />
+</body>
+</html>

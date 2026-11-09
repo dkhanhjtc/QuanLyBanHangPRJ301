@@ -253,15 +253,22 @@
       <!-- Role Access Quick Info & Shortcuts for Testing -->
       <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
         <div style="font-size: 0.825rem; font-weight: 700; color: #1e293b; margin-bottom: 10px;">
-          Một tài khoản, đúng quyền truy cập
+          Tài khoản kiểm thử nhanh (Nhấn để đăng nhập tự động)
         </div>
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <a href="${pageContext.request.contextPath}/views/admin_users.jsp" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer;" title="Đăng nhập thử vai trò Super Admin">Super Admin</a>
-          <a href="${pageContext.request.contextPath}/views/dashboard.jsp" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer;" title="Đăng nhập thử vai trò Quản lý">Quản lý</a>
-          <a href="${pageContext.request.contextPath}/views/pos.jsp" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer;" title="Đăng nhập thử vai trò Nhân viên">Nhân viên</a>
+          <button type="button" onclick="fillCredentials('090 123 4123', '123456')" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer; border:1px solid #e2e8f0;" title="Đăng nhập tài khoản Super Admin (Mai Anh)">Super Admin</button>
+          <button type="button" onclick="fillCredentials('090 987 6543', '123456')" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer; border:1px solid #e2e8f0;" title="Đăng nhập tài khoản Quản lý (Minh Hà)">Quản lý</button>
+          <button type="button" onclick="fillCredentials('090 555 1122', '123456')" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer; border:1px solid #e2e8f0;" title="Đăng nhập tài khoản Nhân viên POS (Lan Anh)">Nhân viên</button>
         </div>
+        <script>
+          function fillCredentials(phone, passcode) {
+            document.getElementById('phone').value = phone;
+            document.getElementById('passcode').value = passcode;
+            document.getElementById('loginForm').submit();
+          }
+        </script>
         <p style="font-size: 0.75rem; color: #94a3b8; line-height: 1.5;">
-          Không có đăng ký công khai. Liên hệ Super Admin để được cấp mã hoặc khôi phục quyền truy cập. Nhân viên không có quyền quản trị tài khoản.
+          Hệ thống xác thực qua SQL Server. Sử dụng plain-text password theo tiêu chuẩn đồ án PRJ301.
         </p>
       </div>
     </div>

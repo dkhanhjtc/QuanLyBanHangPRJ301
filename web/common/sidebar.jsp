@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <c:set var="activeMenu" value="${empty activeMenu ? 'dashboard' : activeMenu}" />
-<c:set var="userRole" value="${empty sessionScope.userRole ? (empty currentRole ? 'manager' : currentRole) : sessionScope.userRole}" />
+<c:set var="userRole" value="${empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase()}" />
 
 <aside class="sidebar">
   <!-- Brand Header -->
@@ -20,7 +20,7 @@
   </div>
 
   <!-- Workspace Selector Card -->
-  <div class="workspace-card" onclick="alert('Đổi chi nhánh: Cửa hàng An Nhiên (Nguyễn Trãi)')">
+  <div class="workspace-card" onclick="alert('Chi nhánh: Cửa hàng An Nhiên (128 Nguyễn Trãi)')">
     <div>
       <div class="workspace-label">KHÔNG GIAN LÀM VIỆC</div>
       <div class="workspace-name">
@@ -48,7 +48,7 @@
       <div class="nav-section-title">VẬN HÀNH</div>
       <ul class="nav-menu">
         <li>
-          <a href="${pageContext.request.contextPath}/views/pos.jsp" class="nav-link ${activeMenu eq 'pos' ? 'active' : ''}">
+          <a href="${pageContext.request.contextPath}/pos" class="nav-link ${activeMenu eq 'pos' ? 'active nav-item--active' : ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <rect x="2" y="4" width="20" height="16" rx="2"/>
               <path d="M7 15h0M2 10h20"/>
@@ -57,7 +57,7 @@
           </a>
         </li>
         <li>
-          <a href="javascript:void(0)" onclick="openShiftOrdersModal()" class="nav-link ${activeMenu eq 'shift_orders' ? 'active' : ''}">
+          <a href="javascript:void(0)" onclick="if(typeof openShiftOrdersModal === 'function'){openShiftOrdersModal();}else{location.href='${pageContext.request.contextPath}/pos';}" class="nav-link ${activeMenu eq 'shift_orders' ? 'active nav-item--active' : ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <rect x="3" y="4" width="18" height="18" rx="2"/>
               <path d="M16 2v4M8 2v4M3 10h18"/>
@@ -66,7 +66,7 @@
           </a>
         </li>
         <li>
-          <a href="${pageContext.request.contextPath}/views/stocktakes.jsp" class="nav-link ${activeMenu eq 'stocktakes' ? 'active' : ''}">
+          <a href="${pageContext.request.contextPath}/stocktakes" class="nav-link ${activeMenu eq 'stocktakes' ? 'active nav-item--active' : ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M9 11l3 3L22 4"/>
               <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
@@ -82,22 +82,36 @@
       <div class="nav-section-title">QUẢN TRỊ</div>
       <ul class="nav-menu">
         <li>
-          <a href="${pageContext.request.contextPath}/views/admin_users.jsp" class="nav-link ${activeMenu eq 'admin_users' ? 'active' : ''}">
+          <a href="${pageContext.request.contextPath}/admin-users" class="nav-link ${activeMenu eq 'admin_users' ? 'active nav-item--active' : ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
               <circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
             </svg>
-            <span>Tài khoản & mã</span>
+            <span>Tài khoản &amp; mã</span>
           </a>
         </li>
         <li>
-          <a href="${pageContext.request.contextPath}/views/activity_log.jsp" class="nav-link ${activeMenu eq 'activity_log' ? 'active' : ''}">
+          <a href="${pageContext.request.contextPath}/activity-log" class="nav-link ${activeMenu eq 'activity_log' ? 'active nav-item--active' : ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
             <span>Nhật ký hoạt động</span>
+          </a>
+        </li>
+        <li style="margin-top: 10px;">
+          <div class="nav-section-title">CHẾ ĐỘ XEM</div>
+        </li>
+        <li>
+          <a href="${pageContext.request.contextPath}/dashboard" class="nav-link ${activeMenu eq 'dashboard' ? 'active nav-item--active' : ''}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <span>Tổng quan quản lý</span>
           </a>
         </li>
       </ul>
@@ -108,7 +122,7 @@
       <div class="nav-section-title">VẬN HÀNH</div>
       <ul class="nav-menu">
         <li>
-          <a href="${pageContext.request.contextPath}/views/dashboard.jsp" class="nav-link ${activeMenu eq 'dashboard' ? 'active' : ''}">
+          <a href="${pageContext.request.contextPath}/dashboard" class="nav-link ${activeMenu eq 'dashboard' ? 'active nav-item--active' : ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <rect x="3" y="3" width="7" height="7"/>
               <rect x="14" y="3" width="7" height="7"/>
@@ -119,7 +133,7 @@
           </a>
         </li>
         <li>
-          <a href="${pageContext.request.contextPath}/views/products.jsp" class="nav-link ${activeMenu eq 'products' ? 'active' : ''}">
+          <a href="${pageContext.request.contextPath}/products" class="nav-link ${activeMenu eq 'products' ? 'active nav-item--active' : ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
               <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
@@ -129,7 +143,7 @@
           </a>
         </li>
         <li>
-          <a href="${pageContext.request.contextPath}/views/products.jsp?tab=approvals" class="nav-link ${activeMenu eq 'approvals' ? 'active' : ''}">
+          <a href="${pageContext.request.contextPath}/products?tab=approvals" class="nav-link ${activeMenu eq 'approvals' ? 'active nav-item--active' : ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
@@ -141,7 +155,7 @@
           </a>
         </li>
         <li>
-          <a href="${pageContext.request.contextPath}/views/stocktakes.jsp" class="nav-link ${activeMenu eq 'stocktakes' ? 'active' : ''}">
+          <a href="${pageContext.request.contextPath}/stocktakes" class="nav-link ${activeMenu eq 'stocktakes' ? 'active nav-item--active' : ''}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M9 11l3 3L22 4"/>
               <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
@@ -177,7 +191,7 @@
       </div>
     </div>
 
-    <a href="javascript:void(0)" class="help-link">
+    <a href="javascript:void(0)" class="help-link" onclick="alert('Trung tâm hỗ trợ vận hành KiotFlow\nHotline: 1900-8888\nEmail: hotro@kiotflow.vn')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="10"/>
         <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/>
@@ -187,3 +201,22 @@
   </div>
 </aside>
 
+<!-- JavaScript for Smooth Click Navigation Animation -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var navLinks = document.querySelectorAll('.sidebar .nav-link');
+    navLinks.forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        var href = this.getAttribute('href');
+        if (href && !href.startsWith('javascript')) {
+          navLinks.forEach(function(l) {
+            l.classList.remove('active');
+            l.classList.remove('nav-item--active');
+          });
+          this.classList.add('nav-item--active');
+          this.classList.add('active');
+        }
+      });
+    });
+  });
+</script>

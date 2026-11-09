@@ -80,7 +80,7 @@ public class OrderDAO extends DBContext {
                 }
                 psOrder.setDouble(4, order.getTotalAmount());
                 psOrder.setString(5, order.getPaymentMethod());
-                psOrder.setString(6, order.getStatus() != null ? order.getStatus() : "Đã thanh toán");
+                psOrder.setString(6, "COMPLETED");
                 psOrder.executeUpdate();
 
                 try (ResultSet generatedKeys = psOrder.getGeneratedKeys()) {
@@ -287,6 +287,9 @@ public class OrderDAO extends DBContext {
         double totalAmount = rs.getDouble("totalAmount");
         String paymentMethod = rs.getString("paymentMethod");
         String status = rs.getString("status");
+        if ("COMPLETED".equalsIgnoreCase(status)) {
+            status = "Đã thanh toán";
+        }
         Timestamp createdAt = rs.getTimestamp("createdAt");
 
         return new Order(id, code, createdBy, staffName, totalAmount, paymentMethod, status, createdAt);

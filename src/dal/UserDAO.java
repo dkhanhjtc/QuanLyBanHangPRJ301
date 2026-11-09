@@ -15,19 +15,19 @@ public class UserDAO extends DBContext {
      * Tương thích hoàn toàn với schema mới QuanLyBanHangThoiTrang (user_id, phone, passcode, full_name, role, status).
      */
     public User login(String loginCodeOrPhone, String password) {
+        String cleanPhone = loginCodeOrPhone != null ? loginCodeOrPhone.replaceAll("[\\s.-]", "") : "";
         String sql = "SELECT user_id, phone, full_name, passcode, role, status, created_at " +
                      "FROM Users " +
-                     "WHERE (phone = ? OR REPLACE(phone, ' ', '') = ?) " +
+                     "WHERE (REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '.', '') = ? OR phone = ?) " +
                      "  AND passcode = ? " +
                      "  AND status = 'ACTIVE'";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            String cleanPhone = loginCodeOrPhone != null ? loginCodeOrPhone.replace(" ", "") : "";
-            ps.setString(1, loginCodeOrPhone);
-            ps.setString(2, cleanPhone);
-            ps.setString(3, password);
+            ps.setString(1, cleanPhone);
+            ps.setString(2, loginCodeOrPhone != null ? loginCodeOrPhone.trim() : "");
+            ps.setString(3, password != null ? password.trim() : "");
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

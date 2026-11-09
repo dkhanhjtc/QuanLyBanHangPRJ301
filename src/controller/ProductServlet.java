@@ -56,6 +56,8 @@ public class ProductServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         User currentUser = (session != null) ? (User) session.getAttribute("user") : null;
         Integer currentUserId = (currentUser != null) ? currentUser.getId() : null;
+        boolean isStaff = currentUser != null && "STAFF".equalsIgnoreCase(currentUser.getRole());
+        request.setAttribute("isStaff", isStaff);
         request.setAttribute("notifications", notificationDAO.getNotificationsForUser(currentUserId, 5));
         request.setAttribute("unreadNotificationCount", notificationDAO.getUnreadCount(currentUserId));
 
@@ -98,6 +100,12 @@ public class ProductServlet extends HttpServlet {
         int userId = (currentUser != null) ? currentUser.getId() : 1;
         String userName = (currentUser != null) ? currentUser.getFullName() : "Quản lý";
         String userRole = (currentUser != null) ? currentUser.getRole() : "MANAGER";
+
+        // Thu ngân chỉ có quyền xem hàng hóa, không được thêm/sửa
+        if ("STAFF".equalsIgnoreCase(userRole)) {
+            response.sendRedirect(request.getContextPath() + "/products?error=unauthorized");
+            return;
+        }
 
         String action = request.getParameter("action");
         if (action == null) {
@@ -209,10 +217,16 @@ public class ProductServlet extends HttpServlet {
                 spec = s.isEmpty() ? unit : s;
             }
 
+            String imageUrl = request.getParameter("imageUrl");
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                imageUrl = sku + ".svg";
+            }
+
             Product existing = productDAO.getProductById(sku);
-            Product p = new Product(sku, sku, name, cat, price, costPrice, stock, minStock, unit, spec, size, color, sku + ".svg", "ACTIVE");
+            Product p = new Product(sku, sku, name, cat, price, costPrice, stock, minStock, unit, spec, size, color, imageUrl, "ACTIVE");
 
             if (existing != null) {
+                p.setId(existing.getId());
                 productDAO.updateProduct(p);
                 logDAO.log(new ActivityLog(0, userId, userName, "Cập nhật hàng hóa", 
                     "Cập nhật thông tin cho sản phẩm " + name + " (" + sku + ")", 

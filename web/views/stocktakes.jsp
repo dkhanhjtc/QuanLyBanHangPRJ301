@@ -129,8 +129,9 @@
               <div class="form-group">
                 <label class="form-label" for="staffSelect">Nhân viên thực hiện *</label>
                 <select id="staffSelect" name="assignedStaffId" class="form-select" required>
-                  <option value="3">Lê Lan Anh · Thu ngân</option>
-                  <option value="4">Trần Quốc Bảo · Thu ngân</option>
+                  <option value="7">Lê Lan Anh · Thu ngân (0988000003)</option>
+                  <option value="3">Lê Lan Anh · Thu ngân (0912345678)</option>
+                  <option value="4">Trần Quốc Bảo · Thu ngân (0987654321)</option>
                 </select>
               </div>
 

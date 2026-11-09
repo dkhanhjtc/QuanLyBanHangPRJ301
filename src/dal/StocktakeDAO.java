@@ -33,7 +33,9 @@ public class StocktakeDAO extends DBContext {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                list.add(mapStocktake(rs));
+                Stocktake st = mapStocktake(rs);
+                st.setItems(getStocktakeItems(st.getId()));
+                list.add(st);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -66,7 +68,9 @@ public class StocktakeDAO extends DBContext {
             ps.setString(3, staffName);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(mapStocktake(rs));
+                    Stocktake st = mapStocktake(rs);
+                    st.setItems(getStocktakeItems(st.getId()));
+                    list.add(st);
                 }
             }
         } catch (Exception e) {
@@ -191,18 +195,69 @@ public class StocktakeDAO extends DBContext {
      * Quản lý tạo phân công kiểm kê mới
      */
     public boolean createStocktake(String code, String title, int staffId) {
-        String sql = "INSERT INTO Stocktakes (stocktake_code, title, assigned_staff_id, status, created_at) " +
-                     "VALUES (?, ?, ?, 'ASSIGNED', GETDATE())";
+        return createStocktake(code, title, staffId, 2, null);
+    }
 
-        try (Connection con = getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+    public boolean createStocktake(String code, String title, int staffId, int managerId, Integer categoryId) {
+        String sql = "INSERT INTO Stocktakes (stocktake_code, title, assigned_staff_id, manager_id, category_id, status, created_at) " +
+                     "VALUES (?, ?, ?, ?, ?, 'ASSIGNED', GETDATE())";
 
-            ps.setString(1, code);
-            ps.setString(2, title);
-            ps.setInt(3, staffId);
-            return ps.executeUpdate() > 0;
+        String insertDetailsSql = "INSERT INTO StocktakeDetails (stocktake_id, product_id, system_qty, actual_qty, note) " +
+                                  "SELECT ?, product_id, stock_qty, stock_qty, N'Chờ nhân viên kiểm đếm' " +
+                                  "FROM Products " +
+                                  "WHERE (? IS NULL OR ? = 0 OR category_id = ?) AND status = 'ACTIVE'";
+
+        Connection con = null;
+        try {
+            con = getConnection();
+            con.setAutoCommit(false);
+
+            int newStocktakeId = 0;
+            try (PreparedStatement ps = con.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, code);
+                ps.setString(2, title);
+                ps.setInt(3, staffId);
+                ps.setInt(4, managerId > 0 ? managerId : 2);
+                if (categoryId != null && categoryId > 0) {
+                    ps.setInt(5, categoryId);
+                } else {
+                    ps.setNull(5, java.sql.Types.INTEGER);
+                }
+                ps.executeUpdate();
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        newStocktakeId = rs.getInt(1);
+                    }
+                }
+            }
+
+            if (newStocktakeId > 0) {
+                try (PreparedStatement psDetails = con.prepareStatement(insertDetailsSql)) {
+                    psDetails.setInt(1, newStocktakeId);
+                    if (categoryId != null && categoryId > 0) {
+                        psDetails.setInt(2, categoryId);
+                        psDetails.setInt(3, categoryId);
+                        psDetails.setInt(4, categoryId);
+                    } else {
+                        psDetails.setNull(2, java.sql.Types.INTEGER);
+                        psDetails.setInt(3, 0);
+                        psDetails.setInt(4, 0);
+                    }
+                    psDetails.executeUpdate();
+                }
+            }
+
+            con.commit();
+            return true;
         } catch (Exception e) {
+            if (con != null) {
+                try { con.rollback(); } catch (Exception ex) { ex.printStackTrace(); }
+            }
             e.printStackTrace();
+        } finally {
+            if (con != null) {
+                try { con.setAutoCommit(true); con.close(); } catch (Exception ignored) {}
+            }
         }
         return false;
     }

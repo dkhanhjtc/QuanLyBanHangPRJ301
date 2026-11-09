@@ -9,6 +9,7 @@ public class PurchaseOrder implements Serializable {
 
     private int id;
     private String code;
+    private Integer supplierId;
     private String supplierName;
     private String productId;
     private String productName;
@@ -34,6 +35,24 @@ public class PurchaseOrder implements Serializable {
         this.totalCost = totalCost;
         this.status = status;
         this.rejectReason = rejectReason;
+        this.createdAt = createdAt;
+    }
+
+    public PurchaseOrder(int id, String code, Integer supplierId, String supplierName, String productId, String productName, int totalQuantity, double totalCost, String status, String rejectReason, int createdBy, String createdByName, int stockBefore, int stockAfter, Timestamp createdAt) {
+        this.id = id;
+        this.code = code;
+        this.supplierId = supplierId;
+        this.supplierName = supplierName;
+        this.productId = productId;
+        this.productName = productName;
+        this.totalQuantity = totalQuantity;
+        this.totalCost = totalCost;
+        this.status = status;
+        this.rejectReason = rejectReason;
+        this.createdBy = createdBy;
+        this.createdByName = createdByName;
+        this.stockBefore = stockBefore;
+        this.stockAfter = stockAfter;
         this.createdAt = createdAt;
     }
 
@@ -68,6 +87,14 @@ public class PurchaseOrder implements Serializable {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public Integer getSupplierId() {
+        return supplierId;
+    }
+
+    public void setSupplierId(Integer supplierId) {
+        this.supplierId = supplierId;
     }
 
     public String getSupplierName() {

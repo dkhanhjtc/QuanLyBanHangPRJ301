@@ -131,12 +131,26 @@ public class PosServlet extends HttpServlet {
 
         // Tạo mã đơn hàng tự động duy nhất
         String orderCode = "BH-" + (System.currentTimeMillis() % 100000);
-        Order order = new Order(0, orderCode, userId, totalAmount, paymentMethod, null);
+        dal.WorkShiftDAO workShiftDAO = new dal.WorkShiftDAO();
+        model.WorkShift activeShift = workShiftDAO.getCurrentShiftByStaff(userId);
+        Integer shiftId = (activeShift != null) ? activeShift.getShiftId() : null;
+
+        Order order = new Order(0, orderCode, userId, shiftId, totalAmount, paymentMethod, null);
         order.setStaffName(userName);
 
         boolean created = orderDAO.createOrder(order, details);
 
         if (created) {
+            // Ghi nhận biến động thẻ kho StockTransactions cho từng món hàng bán ra
+            dal.StockTransactionDAO transDAO = new dal.StockTransactionDAO();
+            for (OrderDetail d : details) {
+                Product cur = productDAO.getProductById(d.getProductId());
+                int curStock = cur != null ? cur.getStockQuantity() : 0;
+                int prodIntId = 0;
+                try { prodIntId = Integer.parseInt(d.getProductId()); } catch (Exception ignored) {}
+                transDAO.logTransaction(prodIntId, -d.getQuantity(), curStock + d.getQuantity(), curStock, "SALE", orderCode, userId, "Bán hàng POS đơn #" + orderCode);
+            }
+
             // Ghi nhật ký bán hàng
             String logDetail = String.format("%,.0f đ · %s · Trừ tồn %d mặt hàng.", totalAmount, paymentMethod, details.size());
             logDAO.log(new ActivityLog(0, userId, userName, "Thanh toán đơn bán hàng", 

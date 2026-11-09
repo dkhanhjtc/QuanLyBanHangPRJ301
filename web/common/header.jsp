@@ -171,5 +171,15 @@
         </a>
       </div>
     </div>
+
+    <!-- Quick 1-Click Logout Button (Directly next to user info for Staff & Manager) -->
+    <a href="${pageContext.request.contextPath}/logout" 
+       class="btn-direct-logout" 
+       title="Đăng xuất khỏi hệ thống" 
+       onclick="return confirm('Bạn có chắc chắn muốn đăng xuất không?');"
+       style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 0.8rem; font-weight: 700; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; text-decoration: none; cursor: pointer; transition: all 0.2s ease;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span>Đăng xuất</span>
+    </a>
   </div>
 </header>

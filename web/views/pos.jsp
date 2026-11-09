@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
   <script>
     window.CONTEXT_PATH = "${pageContext.request.contextPath}";
+    window.HAS_ACTIVE_SHIFT = ${hasActiveShift ? 'true' : 'false'};
     // Dữ liệu sản phẩm từ CSDL được truyền an toàn qua JSP sang JS reactive engine
     window.catalogData = [
       <c:forEach items="${products}" var="p" varStatus="loop">
@@ -26,8 +27,8 @@
           price: ${p.price},
           stock: ${p.stockQuantity},
           minStock: ${p.minStock},
-          unit: "${p.unit != null ? p.unit : 'cái'}",
-          image: "${p.imageUrl != null ? p.imageUrl : (p.sku + '.svg')}"
+          unit: "${p.unit != null ? p.unit : 'Cái'}",
+          image: "${p.imageUrl != null ? p.imageUrl : 'CC01.svg'}"
         }${!loop.last ? ',' : ''}
       </c:forEach>
     ];
@@ -58,10 +59,10 @@
 <body>
 
 <div class="app-container">
-  <!-- Dynamic Sidebar -->
-  <jsp:include page="/common/sidebar.jsp" />
+  <jsp:include page="/common/sidebar.jsp">
+    <jsp:param name="activeMenu" value="pos" />
+  </jsp:include>
 
-  <!-- Main Work Area -->
   <div class="main-content">
     <jsp:include page="/common/header.jsp" />
 
@@ -71,22 +72,38 @@
         <div>
           <h1 style="font-size: 1.75rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">Quầy bán hàng</h1>
           <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
-            Thu ngân: <strong><c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Nhân viên'}" /></strong> · Ca làm việc hôm nay
+            Thu ngân: <strong><c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Lê Lan Anh'}" /></strong> · Ca làm việc hôm nay
           </div>
         </div>
-        <div style="display: flex; gap: 10px;">
-          <!-- Demo Toggle to test overstock simulation -->
-          <button type="button" class="btn btn-outline" onclick="simulateOverstockDemo()" style="color:#d97706; border-color:#fde68a;" title="Nhấn để thử nghiệm kịch bản Vượt Tồn Kho">
-            <span>⚡ Thử kịch bản vượt tồn</span>
-          </button>
-          <button type="button" class="btn btn-outline" onclick="openShiftOrdersModal()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            <span>Đơn trong ca · ${shiftOrderCount != null ? shiftOrderCount : 0}</span>
-          </button>
-          <a href="${pageContext.request.contextPath}/logout" class="btn btn-outline" onclick="return confirm('Bạn có chắc chắn muốn kết ca và đăng xuất không?')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-            <span>Kết ca</span>
-          </a>
+        
+        <!-- Shift Lifecycle & Orders Action Bar -->
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <c:choose>
+            <c:when test="${hasActiveShift}">
+              <span class="badge badge-success" style="padding: 7px 14px; font-size: 0.825rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                Đang trong ca: #${currentShift.shiftCode}
+              </span>
+              <button type="button" class="btn btn-outline" onclick="openShiftOrdersModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                <span>Đơn trong ca · ${shiftOrderCount != null ? shiftOrderCount : 0}</span>
+              </button>
+              <button type="button" class="btn btn-outline" onclick="openCloseShiftModal()" style="color: #ef4444; border-color: #fecaca; background: #fff5f5; font-weight: 600;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                <span>Kết ca làm việc</span>
+              </button>
+            </c:when>
+            <c:otherwise>
+              <span class="badge badge-warning" style="padding: 7px 14px; font-size: 0.825rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; background: #fffbeb; color: #d97706; border: 1px solid #fde68a;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span>
+                Chưa vào ca làm việc
+              </span>
+              <button type="button" class="btn btn-primary" onclick="openStartShiftModal()" style="background: #16a34a; border-color: #16a34a; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Bắt đầu ca làm việc</span>
+              </button>
+            </c:otherwise>
+          </c:choose>
         </div>
       </div>
 
@@ -124,7 +141,7 @@
                 <c:forEach items="${products}" var="p">
                   <div class="product-card" data-category="${p.category}" data-name="${p.name}" data-sku="${p.sku}">
                     <div class="product-card-img-wrap">
-                      <img src="${pageContext.request.contextPath}/assets/images/${p.imageUrl != null ? p.imageUrl : 'CF01.svg'}" alt="${p.name}">
+                      <img src="${pageContext.request.contextPath}/assets/images/${p.imageUrl != null ? p.imageUrl : 'CC01.svg'}" alt="${p.name}">
                     </div>
                     <div class="product-card-body">
                       <div class="product-title">${p.name}</div>
@@ -231,50 +248,167 @@
 </div>
 
 <!-- ==========================================================================
+     MODAL: BẮT ĐẦU CA LÀM VIỆC (MỞ CA MỚI)
+     ========================================================================== -->
+<div class="modal-backdrop" id="startShiftModal" style="display: none;">
+  <div class="modal-window" style="max-width: 440px;">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title" style="color: #16a34a;">Bắt đầu ca làm việc</h3>
+        <div class="modal-sub">Khai báo số tiền mặt trong két để mở phiên bán hàng</div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeModal('startShiftModal')">&times;</button>
+    </div>
+
+    <form action="${pageContext.request.contextPath}/pos" method="POST">
+      <input type="hidden" name="action" value="startShift">
+      <div class="modal-body" style="padding: 20px 24px;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; font-size: 0.8rem; color: #166534;">
+          <strong>Nhân viên vào ca:</strong> <c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Lê Lan Anh'}" />.<br>
+          Ca làm việc sẽ duy trì liên tục qua các lần đăng xuất/đăng nhập cho đến khi bạn chủ động nhấn <em>Kết ca</em>.
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label" for="openingCashInput">Số tiền mặt ban đầu tại két (VNĐ) *</label>
+          <input type="number" id="openingCashInput" name="openingCash" class="form-input" value="1000000" min="0" step="50000" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label" for="shiftNoteInput">Ghi chú nhận ca</label>
+          <input type="text" id="shiftNoteInput" name="note" class="form-input" placeholder="Ví dụ: Đã kiểm đếm đủ tiền lẻ đầu ca và nhận máy POS">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('startShiftModal')">Hủy bỏ</button>
+        <button type="submit" class="btn btn-primary" style="background: #16a34a; border-color: #16a34a; font-weight: 700;">
+          <span>Vào ca làm việc ngay</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL: KẾT CA LÀM VIỆC & BÀN GIAO TIỀN
+     ========================================================================== -->
+<div class="modal-backdrop" id="closeShiftModal" style="display: none;">
+  <div class="modal-window" style="max-width: 480px;">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title" style="color: #dc2626;">Kết ca làm việc</h3>
+        <div class="modal-sub">Chốt doanh số ca và bàn giao két tiền cuối ca</div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeModal('closeShiftModal')">&times;</button>
+    </div>
+
+    <form action="${pageContext.request.contextPath}/pos" method="POST">
+      <input type="hidden" name="action" value="closeShift">
+      <input type="hidden" name="shiftId" value="${currentShift != null ? currentShift.shiftId : 0}">
+
+      <div class="modal-body" style="padding: 20px 24px;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+            <span style="color: #64748b;">Tiền mặt đầu ca:</span>
+            <strong style="color: #0f172a;"><fmt:formatNumber value="${currentShift != null ? currentShift.openingCash : 1000000}" pattern="#,###"/> đ</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+            <span style="color: #64748b;">Doanh số bán trong ca:</span>
+            <strong style="color: #2563eb;"><fmt:formatNumber value="${currentShift != null ? currentShift.totalSales : 0}" pattern="#,###"/> đ</strong>
+          </div>
+          <div style="border-top: 1px solid #dbeafe; padding-top: 8px; margin-top: 6px; display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 700;">
+            <span style="color: #1e3a8a;">Tiền mặt dự kiến tại két:</span>
+            <span style="color: #16a34a;"><fmt:formatNumber value="${(currentShift != null ? currentShift.openingCash : 1000000) + (currentShift != null ? currentShift.totalSales : 0)}" pattern="#,###"/> đ</span>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label" for="closingCashInput">Số tiền mặt thực tế tại két (VNĐ) *</label>
+          <input type="number" id="closingCashInput" name="closingCash" class="form-input" value="${(currentShift != null ? currentShift.openingCash : 1000000) + (currentShift != null ? currentShift.totalSales : 0)}" min="0" step="1000" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label" for="closeNoteInput">Ghi chú bàn giao</label>
+          <input type="text" id="closeNoteInput" name="note" class="form-input" value="Bàn giao ca hoàn tất cho quản lý.">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('closeShiftModal')">Quay lại</button>
+        <button type="submit" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626; font-weight: 700;" onclick="return confirm('Xác nhận kết ca làm việc này? Sau khi kết ca, bạn sẽ cần bấm Bắt đầu ca mới để thanh toán tiếp.');">
+          <span>Xác nhận kết ca</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==========================================================================
      MODAL 1: THANH TOÁN THÀNH CÔNG / IN HÓA ĐƠN
      ========================================================================== -->
 <div class="modal-backdrop" id="invoiceModal">
-  <div class="modal-window printable-receipt">
+  <div class="modal-window modal-print">
     <div class="modal-header no-print">
       <div>
-        <h3 class="modal-title">Thanh toán thành công</h3>
-        <div class="modal-sub" id="invoiceModalSub">Hóa đơn vừa tạo</div>
+        <h3 class="modal-title">Hóa đơn bán hàng</h3>
+        <div class="modal-sub">Giao dịch đã được ghi nhận vào CSDL SQL Server</div>
       </div>
       <button type="button" class="modal-close" onclick="closeModal('invoiceModal')">&times;</button>
     </div>
 
-    <div class="modal-body invoice-slip">
-      <!-- Store Header -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-        <div>
-          <div class="store-brand">AN NHIÊN</div>
-          <div style="font-size: 0.8rem; color: #64748b;">128 Nguyễn Trãi, TP. Hồ Chí Minh</div>
-          <div style="font-size: 0.75rem; color: #64748b;">Thu ngân: <c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Lê Lan Anh'}" /></div>
+    <div class="modal-body" style="padding: 24px 32px;">
+      <!-- Invoice Printable Template -->
+      <div class="invoice-box">
+        <div class="invoice-brand">
+          <div class="brand-title">KIOTFLOW RETAIL</div>
+          <div class="brand-sub">HỆ THỐNG THỜI TRANG AN NHIÊN · CHI NHÁNH NGUYỄN TRÃI</div>
+          <div class="brand-sub">Đ/c: 124 Nguyễn Trãi, Quận 1, TP. Hồ Chí Minh · Hotline: 1900 6868</div>
         </div>
-        <span class="badge badge-success" style="padding: 6px 12px;">Đã thanh toán</span>
-      </div>
 
-      <!-- Itemized Table rendered dynamically -->
-      <div style="border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 10px 0; margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">
-          <span>SẢN PHẨM / SỐ LƯỢNG</span>
-          <span>THÀNH TIỀN</span>
+        <div class="invoice-meta-grid">
+          <div>
+            <div><strong>Mã hóa đơn:</strong> <span id="invOrderCode">#BH-0000</span></div>
+            <div><strong>Thu ngân:</strong> <c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Lê Lan Anh'}" /></div>
+          </div>
+          <div style="text-align: right;">
+            <div><strong>Thời gian:</strong> <span id="invDateTime">--/--/---- --:--</span></div>
+            <div><strong>Phương thức:</strong> <span id="invPaymentMethod">Tiền mặt</span></div>
+          </div>
         </div>
-        <div id="invoiceItemsContainer">
-          <!-- Dynamic Bill Lines -->
+
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th style="width: 50%;">Sản phẩm</th>
+              <th style="text-align: center; width: 15%;">SL</th>
+              <th style="text-align: right; width: 17%;">Đơn giá</th>
+              <th style="text-align: right; width: 18%;">Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody id="invoiceItemsTbody">
+            <!-- Dynamic from Cart -->
+          </tbody>
+        </table>
+
+        <div class="invoice-financial-rows">
+          <div class="inv-row">
+            <span>Tạm tính hàng hóa:</span>
+            <span id="invSubtotal">0 đ</span>
+          </div>
+          <div class="inv-row">
+            <span>Chiết khấu / Giảm giá:</span>
+            <span>0 đ</span>
+          </div>
+          <div class="inv-row-total">
+            <span>TỔNG CỘNG THANH TOÁN:</span>
+            <span id="invTotalAmount">0 đ</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Financial Calculation -->
-      <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 1.1rem; font-weight: 800; color: #0f172a; margin-bottom: 20px;">
-        <span>Tổng thanh toán</span>
-        <span style="font-size: 1.6rem; color: #2563eb;" id="invoiceTotalAmount">0 đ</span>
-      </div>
-
-      <!-- Sync Status -->
-      <div style="display: flex; align-items: center; gap: 8px; background: #eff6ff; border-radius: 8px; padding: 10px 14px; margin-top: 16px; font-size: 0.78rem; color: #1e40af;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-        <span>Đã ghi nhận thanh toán và trừ kho thành công trong cơ sở dữ liệu.</span>
+        <div class="invoice-footer-note">
+          <div>Cảm ơn quý khách đã tin tưởng mua sắm tại An Nhiên!</div>
+          <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px;">Hóa đơn điện tử khởi tạo từ hệ thống KiotFlow · Quý khách vui lòng kiểm tra hàng trước khi rời quầy</div>
+        </div>
       </div>
     </div>
 
@@ -298,13 +432,13 @@
     <div class="modal-header">
       <div>
         <h3 class="modal-title">Đơn hàng trong ca</h3>
-        <div class="modal-sub"><c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Nhân viên'}" /> · Hôm nay</div>
+        <div class="modal-sub"><c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Lê Lan Anh'}" /> · Hôm nay</div>
       </div>
       <button type="button" class="modal-close" onclick="closeModal('shiftOrdersModal')">&times;</button>
     </div>
 
     <div class="modal-body">
-      <!-- Shift Summary Box (Modern Minimalist Light Accent) -->
+      <!-- Shift Summary Box -->
       <div style="background: #eff6ff; color: #0f172a; border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 18px;">
         <div>
           <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Đơn đã thanh toán</div>
@@ -352,8 +486,27 @@
   </div>
 </div>
 
+<script>
+  function openStartShiftModal() {
+    const m = document.getElementById('startShiftModal');
+    if (m) m.style.display = 'flex';
+  }
+  function openCloseShiftModal() {
+    const m = document.getElementById('closeShiftModal');
+    if (m) m.style.display = 'flex';
+  }
+  function openShiftOrdersModal() {
+    const m = document.getElementById('shiftOrdersModal');
+    if (m) m.style.display = 'flex';
+  }
+  function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.style.display = 'none';
+  }
+</script>
+
 <!-- POS Interactive Script -->
-<script src="${pageContext.request.contextPath}/assets/js/pos.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/pos.js?v=2" charset="UTF-8"></script>
 <jsp:include page="/common/footer.jsp" />
 </body>
 </html>

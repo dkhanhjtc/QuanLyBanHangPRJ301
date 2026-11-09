@@ -17,31 +17,24 @@ public class OrderDAO extends DBContext {
     /**
      * Tạo đơn hàng mới sử dụng JDBC Transaction.
      * Quy trình:
-     * 1. Kiểm tra tồn kho của từng sản phẩm trong giỏ hàng (nếu mua > tồn thì hủy
-     * giao dịch)
+     * 1. Kiểm tra tồn kho của từng sản phẩm trong giỏ hàng (nếu mua > tồn thì hủy giao dịch)
      * 2. Insert vào bảng Orders lấy ID vừa tạo
      * 3. Insert danh sách vào OrderDetails
-     * 4. Trừ tồn kho stockQuantity trong bảng Products
-     * 5. Commit Transaction
-     * 
-     * @param order   Đối tượng đơn hàng
-     * @param details Danh sách chi tiết đơn hàng
-     * @return true nếu tạo đơn và trừ kho thành công, ngược lại rollback và trả về
-     *         false
+     * 4. Trừ tồn kho stock_qty trong bảng Products
+     * 5. Cập nhật doanh số ca WorkShifts nếu có shiftId
+     * 6. Commit Transaction
      */
     public boolean createOrder(Order order, List<OrderDetail> details) {
         if (details == null || details.isEmpty()) {
             return false;
         }
 
-        String checkStockSql = "SELECT stockQuantity, name FROM Products WHERE id = ?";
-        String insertOrderSql = "INSERT INTO Orders (code, createdBy, shift_id, totalAmount, paymentMethod, status, createdAt) "
-                +
-                "VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
-        String insertDetailSql = "INSERT INTO OrderDetails (orderId, productId, productName, quantity, unitPrice, subtotal) "
-                +
-                "VALUES (?, ?, ?, ?, ?, ?)";
-        String updateStockSql = "UPDATE Products SET stockQuantity = stockQuantity - ? WHERE id = ?";
+        String checkStockSql = "SELECT product_id, stock_qty, product_name FROM Products WHERE product_code = ? OR CAST(product_id AS VARCHAR(50)) = ?";
+        String insertOrderSql = "INSERT INTO Orders (order_code, staff_id, shift_id, total_amount, payment_method, status, created_at) "
+                + "VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
+        String insertDetailSql = "INSERT INTO OrderDetails (order_id, product_id, quantity, unit_price, subtotal) "
+                + "VALUES (?, ?, ?, ?, ?)";
+        String updateStockSql = "UPDATE Products SET stock_qty = stock_qty - ? WHERE product_id = ?";
         String updateShiftSalesSql = "UPDATE WorkShifts SET total_sales = total_sales + ? WHERE shift_id = ?";
 
         Connection con = null;
@@ -49,13 +42,19 @@ public class OrderDAO extends DBContext {
             con = getConnection();
             con.setAutoCommit(false); // Bắt đầu Transaction an toàn
 
+            Map<String, Integer> productDbIdMap = new HashMap<>();
+
             // 1. Kiểm tra tồn kho của tất cả sản phẩm trong giỏ
             try (PreparedStatement psCheck = con.prepareStatement(checkStockSql)) {
                 for (OrderDetail d : details) {
                     psCheck.setString(1, d.getProductId());
+                    psCheck.setString(2, d.getProductId());
                     try (ResultSet rs = psCheck.executeQuery()) {
                         if (rs.next()) {
-                            int currentStock = rs.getInt("stockQuantity");
+                            int currentStock = rs.getInt("stock_qty");
+                            int dbProdId = rs.getInt("product_id");
+                            productDbIdMap.put(d.getProductId(), dbProdId);
+
                             if (currentStock < d.getQuantity()) {
                                 // Tồn kho không đủ -> Rollback ngay lập tức
                                 con.rollback();
@@ -98,22 +97,23 @@ public class OrderDAO extends DBContext {
             // 3. Insert OrderDetails
             try (PreparedStatement psDetail = con.prepareStatement(insertDetailSql)) {
                 for (OrderDetail d : details) {
+                    int dbProdId = productDbIdMap.getOrDefault(d.getProductId(), 1);
                     psDetail.setInt(1, orderId);
-                    psDetail.setString(2, d.getProductId());
-                    psDetail.setString(3, d.getProductName());
-                    psDetail.setInt(4, d.getQuantity());
-                    psDetail.setDouble(5, d.getUnitPrice());
-                    psDetail.setDouble(6, d.getSubtotal());
+                    psDetail.setInt(2, dbProdId);
+                    psDetail.setInt(3, d.getQuantity());
+                    psDetail.setDouble(4, d.getUnitPrice());
+                    psDetail.setDouble(5, d.getSubtotal());
                     psDetail.addBatch();
                 }
                 psDetail.executeBatch();
             }
 
-            // 4. Trừ tồn kho Products
+            // 4. Trừ kho sản phẩm
             try (PreparedStatement psStock = con.prepareStatement(updateStockSql)) {
                 for (OrderDetail d : details) {
+                    int dbProdId = productDbIdMap.getOrDefault(d.getProductId(), 1);
                     psStock.setInt(1, d.getQuantity());
-                    psStock.setString(2, d.getProductId());
+                    psStock.setInt(2, dbProdId);
                     psStock.addBatch();
                 }
                 psStock.executeBatch();
@@ -128,12 +128,13 @@ public class OrderDAO extends DBContext {
                 }
             }
 
-            con.commit(); // Transaction hoàn thành thành công
+            con.commit(); // Transaction thành công mỹ mãn!
             return true;
+
         } catch (Exception e) {
             if (con != null) {
                 try {
-                    con.rollback();
+                    con.rollback(); // Rollback nếu có lỗi
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
@@ -154,17 +155,16 @@ public class OrderDAO extends DBContext {
 
     /**
      * Lấy danh sách các đơn hàng đã tạo trong ngày hôm nay
-     * 
-     * @return List<Order> danh sách đơn hàng hôm nay
      */
     public List<Order> getTodayOrders() {
         List<Order> list = new ArrayList<>();
-        String sql = "SELECT o.id, o.code, o.createdBy, u.fullName AS staffName, o.totalAmount, " +
-                "       o.paymentMethod, o.status, o.createdAt " +
+        String sql = "SELECT o.order_id AS id, o.order_code AS code, o.staff_id AS createdBy, " +
+                "       ISNULL(u.full_name, N'Thu ngân') AS staffName, o.total_amount AS totalAmount, " +
+                "       o.payment_method AS paymentMethod, o.status, o.created_at AS createdAt " +
                 "FROM Orders o " +
-                "JOIN Users u ON o.createdBy = u.id " +
-                "WHERE CAST(o.createdAt AS DATE) = CAST(GETDATE() AS DATE) " +
-                "ORDER BY o.createdAt DESC";
+                "LEFT JOIN Users u ON o.staff_id = u.user_id " +
+                "WHERE CAST(o.created_at AS DATE) = CAST(GETDATE() AS DATE) " +
+                "ORDER BY o.created_at DESC";
 
         try (Connection con = getConnection();
                 PreparedStatement ps = con.prepareStatement(sql);
@@ -181,17 +181,15 @@ public class OrderDAO extends DBContext {
 
     /**
      * Lấy danh sách đơn hàng gần đây với số lượng giới hạn
-     * 
-     * @param limit Số lượng đơn tối đa cần lấy
-     * @return List<Order> danh sách đơn hàng
      */
     public List<Order> getRecentOrders(int limit) {
         List<Order> list = new ArrayList<>();
-        String sql = "SELECT TOP (?) o.id, o.code, o.createdBy, u.fullName AS staffName, o.totalAmount, " +
-                "       o.paymentMethod, o.status, o.createdAt " +
+        String sql = "SELECT TOP (?) o.order_id AS id, o.order_code AS code, o.staff_id AS createdBy, " +
+                "       ISNULL(u.full_name, N'Thu ngân') AS staffName, o.total_amount AS totalAmount, " +
+                "       o.payment_method AS paymentMethod, o.status, o.created_at AS createdAt " +
                 "FROM Orders o " +
-                "JOIN Users u ON o.createdBy = u.id " +
-                "ORDER BY o.createdAt DESC";
+                "LEFT JOIN Users u ON o.staff_id = u.user_id " +
+                "ORDER BY o.created_at DESC";
 
         try (Connection con = getConnection();
                 PreparedStatement ps = con.prepareStatement(sql)) {
@@ -210,9 +208,6 @@ public class OrderDAO extends DBContext {
 
     /**
      * Tính tổng kết số liệu doanh thu và tồn kho cho Dashboard KPI
-     * 
-     * @return Map chứa các chỉ số: todayRevenue, totalInventoryValue,
-     *         lowStockCount, totalUnits
      */
     public Map<String, Object> getRevenueSummary() {
         Map<String, Object> summary = new HashMap<>();
@@ -221,11 +216,11 @@ public class OrderDAO extends DBContext {
         summary.put("lowStockCount", 0);
         summary.put("totalUnits", 0);
 
-        String sqlRevenue = "SELECT COALESCE(SUM(totalAmount), 0) AS todayRev FROM Orders " +
-                "WHERE CAST(createdAt AS DATE) = CAST(GETDATE() AS DATE)";
-        String sqlStock = "SELECT COALESCE(SUM(stockQuantity * costPrice), 0) AS totalCost, " +
-                "       COALESCE(SUM(stockQuantity), 0) AS totalUnits, " +
-                "       COALESCE(SUM(CASE WHEN stockQuantity <= minStock THEN 1 ELSE 0 END), 0) AS lowStock " +
+        String sqlRevenue = "SELECT COALESCE(SUM(total_amount), 0) AS todayRev FROM Orders " +
+                "WHERE CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)";
+        String sqlStock = "SELECT COALESCE(SUM(stock_qty * cost_price), 0) AS totalCost, " +
+                "       COALESCE(SUM(stock_qty), 0) AS totalUnits, " +
+                "       COALESCE(SUM(CASE WHEN stock_qty <= min_stock_alert THEN 1 ELSE 0 END), 0) AS lowStock " +
                 "FROM Products WHERE status = 'ACTIVE'";
 
         try (Connection con = getConnection()) {
@@ -256,8 +251,11 @@ public class OrderDAO extends DBContext {
      */
     public List<OrderDetail> getOrderDetails(int orderId) {
         List<OrderDetail> list = new ArrayList<>();
-        String sql = "SELECT id, orderId, productId, productName, quantity, unitPrice, subtotal " +
-                "FROM OrderDetails WHERE orderId = ? ORDER BY id ASC";
+        String sql = "SELECT d.order_detail_id AS id, d.order_id AS orderId, CAST(d.product_id AS VARCHAR(50)) AS productId, " +
+                "       ISNULL(p.product_name, N'Sản phẩm') AS productName, d.quantity, d.unit_price AS unitPrice, d.subtotal " +
+                "FROM OrderDetails d " +
+                "LEFT JOIN Products p ON d.product_id = p.product_id " +
+                "WHERE d.order_id = ? ORDER BY d.order_detail_id ASC";
 
         try (Connection con = getConnection();
                 PreparedStatement ps = con.prepareStatement(sql)) {

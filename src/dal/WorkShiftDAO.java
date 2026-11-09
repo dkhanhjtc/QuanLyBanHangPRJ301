@@ -11,17 +11,23 @@ import java.util.List;
 public class WorkShiftDAO extends DBContext {
 
     public WorkShift getCurrentShiftByStaff(int staffId) {
+        return getCurrentShiftByStaff(staffId, null);
+    }
+
+    public WorkShift getCurrentShiftByStaff(int staffId, String staffName) {
         String sql = "SELECT ws.shift_id, ws.shift_code, ws.staff_id, u.full_name AS staffName, " +
                      "       ws.start_time, ws.end_time, ws.opening_cash, ws.closing_cash, ws.total_sales, ws.status, ws.note " +
                      "FROM WorkShifts ws " +
                      "JOIN Users u ON ws.staff_id = u.user_id " +
-                     "WHERE ws.staff_id = ? AND ws.status = 'OPEN' " +
+                     "WHERE (ws.staff_id = ? OR (? IS NOT NULL AND u.full_name = ?)) AND ws.status = 'OPEN' " +
                      "ORDER BY ws.start_time DESC";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, staffId);
+            ps.setString(2, staffName);
+            ps.setString(3, staffName);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapWorkShift(rs);
@@ -55,7 +61,7 @@ public class WorkShiftDAO extends DBContext {
     }
 
     public boolean openShift(int staffId, double openingCash, String note) {
-        String code = "CA-" + System.currentTimeMillis();
+        String code = "CA-" + System.currentTimeMillis() % 1000000;
         String sql = "INSERT INTO WorkShifts (shift_code, staff_id, start_time, opening_cash, total_sales, status, note) " +
                      "VALUES (?, ?, GETDATE(), ?, 0, 'OPEN', ?)";
 
@@ -118,4 +124,3 @@ public class WorkShiftDAO extends DBContext {
         return new WorkShift(id, code, staffId, staffName, startTime, endTime, openingCash, closingCash, totalSales, status, note);
     }
 }
-

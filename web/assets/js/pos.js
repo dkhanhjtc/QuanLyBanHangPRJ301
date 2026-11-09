@@ -72,8 +72,8 @@ function renderCart() {
     cartContainer.innerHTML = `
       <div style="text-align:center; padding: 40px 10px; color:#94a3b8;">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
-        <p style="font-weight:600; font-size:0.9rem;">Giỏ hàng trống</p>
-        <p style="font-size:0.75rem;">Chọn sản phẩm bên trái để bắt đầu tạo đơn</p>
+        <p style="font-weight:600; font-size:0.9rem; color:#475569;">Giỏ hàng trống</p>
+        <p style="font-size:0.75rem; color:#94a3b8;">Chọn sản phẩm bên trái để bắt đầu tạo đơn</p>
       </div>
     `;
     if (cartCountBadge) cartCountBadge.textContent = '0 sản phẩm';
@@ -116,7 +116,7 @@ function renderCart() {
     }
 
     const contextPath = window.CONTEXT_PATH || '';
-    const imgUrl = contextPath + '/assets/images/' + (prod.image || 'CF01.svg');
+    const imgUrl = contextPath + '/assets/images/' + (prod.image || 'CC01.svg');
 
     html += `
       <div class="cart-item-card ${isOverstock ? 'is-overstock' : ''}" id="cart-item-${prod.sku}">
@@ -134,15 +134,16 @@ function renderCart() {
         <div class="cart-item-controls">
           <div class="stepper-group">
             <button type="button" class="stepper-btn" onclick="updateCartQty('${prod.sku}', -1)">−</button>
-            <input type="text" class="stepper-val" value="${item.quantity}" readonly>
+            <input type="number" class="stepper-input ${isOverstock ? 'input-error' : ''}" value="${item.quantity}" min="1" onchange="setCartQty('${prod.sku}', this.value)">
             <button type="button" class="stepper-btn" onclick="updateCartQty('${prod.sku}', 1)">+</button>
           </div>
-          <div class="cart-item-subtotal">${formatVND(itemSubtotal)}</div>
+          <div class="cart-item-total ${isOverstock ? 'text-danger' : ''}">${formatVND(itemSubtotal)}</div>
         </div>
 
         ${isOverstock ? `
-          <div class="cart-item-error-msg" style="color:#ef4444; font-size:0.75rem; margin-top:6px;">
-            Chỉ còn ${prod.stock} ${prod.unit}. Số lượng ${item.quantity} vượt tồn kho ${item.quantity - prod.stock} ${prod.unit}.
+          <div class="overstock-msg">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Vượt tồn kho! Chỉ còn ${prod.stock} ${prod.unit || 'cái'} trong kho.</span>
           </div>
         ` : ''}
       </div>
@@ -150,37 +151,45 @@ function renderCart() {
   });
 
   cartContainer.innerHTML = html;
+
   if (cartCountBadge) cartCountBadge.textContent = totalItemsCount + ' sản phẩm';
   if (cartSubtotalEl) cartSubtotalEl.textContent = formatVND(subtotal);
-  if (cartTotalEl) cartTotalEl.textContent = formatVND(subtotal);
 
-  // Khóa nút thanh toán nếu phát hiện sản phẩm vượt tồn kho
-  if (hasOverstock) {
-    if (cartPanel) cartPanel.classList.add('has-stock-error');
-    if (cartTotalEl) cartTotalEl.classList.add('text-danger');
-    if (stockWarningBanner) {
-      stockWarningBanner.style.display = 'flex';
-      overstockProdName.textContent = overstockedProductName;
+  if (cartTotalEl) {
+    cartTotalEl.textContent = formatVND(subtotal);
+    if (hasOverstock) {
+      cartTotalEl.classList.add('text-danger');
+    } else {
+      cartTotalEl.classList.remove('text-danger');
     }
-    if (checkoutWarningText) checkoutWarningText.style.display = 'block';
+  }
 
-    if (checkoutBtn) {
+  if (cartPanel) {
+    if (hasOverstock) cartPanel.classList.add('has-stock-error');
+    else cartPanel.classList.remove('has-stock-error');
+  }
+
+  if (stockWarningBanner) {
+    stockWarningBanner.style.display = hasOverstock ? 'flex' : 'none';
+  }
+  if (overstockProdName) {
+    overstockProdName.textContent = overstockedProductName;
+  }
+  if (checkoutWarningText) {
+    checkoutWarningText.style.display = hasOverstock ? 'block' : 'none';
+  }
+
+  if (checkoutBtn) {
+    if (hasOverstock) {
       checkoutBtn.disabled = true;
       checkoutBtn.className = 'btn btn-disabled';
       checkoutBtn.style.width = '100%';
       checkoutBtn.style.padding = '14px';
       checkoutBtn.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-        <span>Không thể thanh toán</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <span>Không thể thanh toán · Vượt tồn kho</span>
       `;
-    }
-  } else {
-    if (cartPanel) cartPanel.classList.remove('has-stock-error');
-    if (cartTotalEl) cartTotalEl.classList.remove('text-danger');
-    if (stockWarningBanner) stockWarningBanner.style.display = 'none';
-    if (checkoutWarningText) checkoutWarningText.style.display = 'none';
-
-    if (checkoutBtn) {
+    } else {
       checkoutBtn.disabled = false;
       checkoutBtn.className = 'btn btn-primary';
       checkoutBtn.style.width = '100%';
@@ -193,16 +202,28 @@ function renderCart() {
   }
 }
 
-// Lọc sản phẩm theo danh mục
-function filterCategory(cat, element) {
+// Nhập trực tiếp số lượng trong ô input
+function setCartQty(sku, val) {
+  let q = parseInt(val, 10);
+  if (isNaN(q) || q <= 0) q = 1;
+
+  const item = cart.find(item => item.sku === sku);
+  if (item) {
+    item.quantity = q;
+    renderCart();
+  }
+}
+
+// Lọc sản phẩm theo Category Tabs
+function filterCategory(cat, btn) {
   activeCategory = cat;
   document.querySelectorAll('.filter-tab-pill').forEach(el => el.classList.remove('active'));
-  if (element) element.classList.add('active');
+  if (btn) btn.classList.add('active');
 
   const cards = document.querySelectorAll('.product-card');
   cards.forEach(card => {
     const cardCat = card.getAttribute('data-category');
-    if (cat === 'all' || cardCat === cat) {
+    if (cat === 'all' || cardCat === cat || (cardCat && cardCat.includes(cat))) {
       card.style.display = 'flex';
     } else {
       card.style.display = 'none';
@@ -210,14 +231,17 @@ function filterCategory(cat, element) {
   });
 }
 
-// Tìm kiếm sản phẩm
-function searchProducts(query) {
-  const q = query.trim().toLowerCase();
+// Tìm kiếm sản phẩm theo tên / SKU realtime
+function searchProducts(keyword) {
+  const q = keyword.trim().toLowerCase();
   const cards = document.querySelectorAll('.product-card');
   cards.forEach(card => {
-    const title = (card.getAttribute('data-name') || '').toLowerCase();
+    const name = (card.getAttribute('data-name') || '').toLowerCase();
     const sku = (card.getAttribute('data-sku') || '').toLowerCase();
-    if (title.includes(q) || sku.includes(q)) {
+    const matchesQuery = name.includes(q) || sku.includes(q);
+    const matchesCat = (activeCategory === 'all' || (card.getAttribute('data-category') || '').includes(activeCategory));
+
+    if (matchesQuery && matchesCat) {
       card.style.display = 'flex';
     } else {
       card.style.display = 'none';
@@ -225,10 +249,16 @@ function searchProducts(query) {
   });
 }
 
-// Xử lý gửi đơn hàng lên Backend Java Servlet (/pos)
+// Xử lý gửi thanh toán AJAX tới PosServlet (/pos)
 function processCheckout() {
+  if (window.HAS_ACTIVE_SHIFT === false) {
+    alert('Bạn chưa bắt đầu ca làm việc! Vui lòng bấm "Bắt đầu ca làm việc" trước khi thanh toán.');
+    if (typeof openStartShiftModal === 'function') openStartShiftModal();
+    return;
+  }
+
   if (cart.length === 0) {
-    alert('Giỏ hàng đang trống!');
+    alert('Giỏ hàng đang trống! Vui lòng chọn sản phẩm.');
     return;
   }
 
@@ -261,37 +291,41 @@ function processCheckout() {
   .then(res => res.json())
   .then(data => {
     if (data.success) {
-      // Cập nhật modal hóa đơn
-      const subTitleEl = document.getElementById('invoiceModalSub');
-      if (subTitleEl) {
+      const invCode = document.getElementById('invOrderCode');
+      if (invCode) invCode.textContent = '#' + data.orderCode;
+
+      const invDateTime = document.getElementById('invDateTime');
+      if (invDateTime) {
         const now = new Date();
-        subTitleEl.textContent = 'Hóa đơn #' + data.orderCode + ' · ' + now.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) + ', ' + now.toLocaleDateString('vi-VN');
+        invDateTime.textContent = now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
       }
 
-      const itemsContainer = document.getElementById('invoiceItemsContainer');
-      if (itemsContainer) {
-        let billHtml = '';
+      const tbody = document.getElementById('invoiceItemsTbody');
+      if (tbody) {
+        let rowsHtml = '';
         cart.forEach(item => {
           const prod = catalogData.find(p => p.sku === item.sku);
           if (prod) {
-            billHtml += `
-              <div class="bill-line-item" style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.85rem;">
-                <div>
-                  <div style="font-weight:600; color:#0f172a;">${prod.name}</div>
-                  <div style="font-size:0.75rem; color:#64748b;">${item.quantity} × ${formatVND(prod.price)}</div>
-                </div>
-                <div style="font-weight:600;">${formatVND(item.quantity * prod.price)}</div>
-              </div>
+            rowsHtml += `
+              <tr>
+                <td><strong>${prod.name}</strong><br><span style="font-size:0.75rem; color:#64748b;">${prod.spec || ''}</span></td>
+                <td style="text-align: center;">${item.quantity}</td>
+                <td style="text-align: right;">${formatVND(prod.price)}</td>
+                <td style="text-align: right; font-weight: 700;">${formatVND(item.quantity * prod.price)}</td>
+              </tr>
             `;
             // Cập nhật tồn kho client
             prod.stock -= item.quantity;
           }
         });
-        itemsContainer.innerHTML = billHtml;
+        tbody.innerHTML = rowsHtml;
       }
 
-      const totalEl = document.getElementById('invoiceTotalAmount');
-      if (totalEl) totalEl.textContent = formatVND(data.totalAmount);
+      const invSub = document.getElementById('invSubtotal');
+      if (invSub) invSub.textContent = formatVND(data.totalAmount);
+
+      const invTot = document.getElementById('invTotalAmount');
+      if (invTot) invTot.textContent = formatVND(data.totalAmount);
 
       // Mở modal hóa đơn
       openModal('invoiceModal');
@@ -316,9 +350,15 @@ function printInvoice() {
   window.print();
 }
 
-// Mở Modal đơn trong ca
-function openShiftOrdersModal() {
-  openModal('shiftOrdersModal');
+// Helpers quản lý Modal
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) modal.style.display = 'none';
 }
 
 // Helper thử kịch bản vượt tồn kho

@@ -9,9 +9,9 @@ public class DBContext {
     // Các tham số cấu hình kết nối SQL Server
     private final String serverName = "localhost";
     private final String portNumber = "1433";
-    private final String dbName = "KiotFlow_DB";
+    private final String dbName = "QuanLyBanHangThoiTrang";
     private final String userID = "sa";
-    private final String password = ""; // Để trống mật khẩu theo quy chuẩn PRJ301 (người dùng tự điền khi chạy)
+    private final String password = "123456";
 
     public DBContext() {
         try {
@@ -24,15 +24,15 @@ public class DBContext {
 
     /**
      * Lấy kết nối JDBC tới cơ sở dữ liệu SQL Server KiotFlow_DB
+     * 
      * @return Connection đối tượng kết nối đang mở
      * @throws Exception nếu không tìm thấy driver hoặc sai thông tin xác thực
      */
     public Connection getConnection() throws Exception {
-        String url = "jdbc:sqlserver://" + serverName + ":" + portNumber 
-                + ";databaseName=" + dbName 
+        String url = "jdbc:sqlserver://" + serverName + ":" + portNumber
+                + ";databaseName=" + dbName
                 + ";encrypt=true;trustServerCertificate=true";
         Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         return DriverManager.getConnection(url, userID, password);
     }
 }
-

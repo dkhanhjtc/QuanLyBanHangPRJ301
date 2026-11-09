@@ -1,9 +1,10 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <c:set var="userRole" value="${empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase()}" />
 <c:set var="currentUser" value="${sessionScope.user}" />
+<c:set var="currentCrumb" value="${not empty param.breadcrumbCurrent ? param.breadcrumbCurrent : (not empty breadcrumbCurrent ? breadcrumbCurrent : 'Tổng quan')}" />
 
 <header class="topbar">
   <!-- Breadcrumb Navigation -->
@@ -21,7 +22,7 @@
       </span>
     </a>
     <span>/</span>
-    <span class="current">${empty breadcrumbCurrent ? 'Tổng quan' : breadcrumbCurrent}</span>
+    <span class="current">${currentCrumb}</span>
   </div>
 
   <!-- Topbar Right Controls -->
@@ -31,54 +32,77 @@
     </span>
 
     <div style="position: relative;">
-      <button type="button" class="icon-button" id="stockAlertBtn" title="Cảnh báo tồn kho" onclick="toggleStockAlertDropdown(event)" style="position: relative;">
+      <button type="button" class="icon-button" id="stockAlertBtn" title="Thông báo hệ thống & Cảnh báo tồn" onclick="toggleStockAlertDropdown(event)" style="position: relative;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 01-3.46 0"/>
         </svg>
-        <c:if test="${not empty lowStockProducts and lowStockProducts.size() > 0}">
+        <c:set var="totalAlerts" value="${(not empty lowStockProducts ? lowStockProducts.size() : 0) + (not empty unreadNotificationCount ? unreadNotificationCount : 0)}" />
+        <c:if test="${totalAlerts > 0}">
           <span style="position: absolute; top: -3px; right: -3px; background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; width: 17px; height: 17px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #fff;">
-            ${lowStockProducts.size()}
+            ${totalAlerts}
           </span>
         </c:if>
       </button>
 
-      <!-- Dropdown Cảnh báo tồn kho thông minh -->
-      <div id="stockAlertDropdown" style="display:none; position:absolute; right:0; top:44px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; width:330px; box-shadow:0 12px 24px -6px rgba(15,23,42,0.12); z-index:1000; padding:12px;">
+      <!-- Dropdown Cảnh báo tồn kho & Thông báo thông minh -->
+      <div id="stockAlertDropdown" style="display:none; position:absolute; right:0; top:44px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; width:360px; box-shadow:0 12px 24px -6px rgba(15,23,42,0.12); z-index:1000; padding:12px;">
+        <!-- Header -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #f1f5f9; padding-bottom:8px;">
           <div style="font-size:0.8rem; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:6px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <span>CẢNH BÁO TỒN KHO THẤP</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            <span>TRUNG TÂM THÔNG BÁO</span>
           </div>
-          <span class="badge badge-danger" style="font-size:0.65rem; padding:2px 6px;">
-            ${not empty lowStockProducts ? lowStockProducts.size() : 0} sản phẩm
+          <span class="badge badge-primary" style="font-size:0.65rem; padding:2px 6px;">
+            ${totalAlerts} tin mới
           </span>
         </div>
-        <div style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+
+        <div style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Mục 1: Thông báo vận hành hệ thống -->
+          <c:if test="${not empty notifications and notifications.size() > 0}">
+            <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 2px;">Vận hành &amp; Duyệt đơn</div>
+            <c:forEach var="notif" items="${notifications}">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #2563eb; border-radius: 6px; padding: 7px 10px; font-size: 0.78rem;">
+                <div style="font-weight: 700; color: #0f172a; display: flex; justify-content: space-between;">
+                  <span>${notif.title}</span>
+                  <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 400;"><fmt:formatDate value="${notif.createdAt}" pattern="HH:mm dd/MM"/></span>
+                </div>
+                <div style="color: #475569; font-size: 0.72rem; margin-top: 2px;">${notif.message}</div>
+              </div>
+            </c:forEach>
+          </c:if>
+
+          <!-- Mục 2: Cảnh báo tồn kho thấp -->
+          <div style="font-size: 0.68rem; font-weight: 700; color: #dc2626; text-transform: uppercase; margin-top: 4px; display: flex; justify-content: space-between;">
+            <span>Cảnh báo tồn kho chạm đáy</span>
+            <span>${not empty lowStockProducts ? lowStockProducts.size() : 0} SP</span>
+          </div>
           <c:choose>
             <c:when test="${not empty lowStockProducts and lowStockProducts.size() > 0}">
               <c:forEach var="lsp" items="${lowStockProducts}">
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:8px 10px; font-size:0.8rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:7px 10px; font-size:0.78rem;">
                   <div>
                     <div style="font-weight:700; color:#991b1b;">${lsp.name}</div>
-                    <div style="font-size:0.7rem; color:#b91c1c;">Mã: ${lsp.sku} · ${lsp.spec}</div>
+                    <div style="font-size:0.68rem; color:#b91c1c;">Mã: ${lsp.sku} · ${lsp.spec}</div>
                   </div>
                   <div style="text-align:right;">
                     <div style="font-weight:800; color:#dc2626;">Tồn: ${lsp.stockQuantity}</div>
-                    <div style="font-size:0.68rem; color:#64748b;">Mức sàn: ${lsp.minStock}</div>
+                    <div style="font-size:0.65rem; color:#64748b;">Sàn: ${lsp.minStock}</div>
                   </div>
                 </div>
               </c:forEach>
             </c:when>
             <c:otherwise>
-              <div style="text-align:center; padding:16px 8px; color:#64748b; font-size:0.8rem;">
+              <div style="text-align:center; padding:10px 8px; color:#64748b; font-size:0.75rem;">
                 Tồn kho an toàn. Không có sản phẩm nào chạm mức tồn tối thiểu!
               </div>
             </c:otherwise>
           </c:choose>
         </div>
-        <div style="border-top:1px solid #f1f5f9; margin-top:10px; padding-top:8px; text-align:center;">
-          <a href="${pageContext.request.contextPath}/products" style="font-size:0.75rem; font-weight:700; color:#2563eb;">Xem chi tiết kho hàng &rarr;</a>
+        <div style="border-top:1px solid #f1f5f9; margin-top:10px; padding-top:8px; display:flex; justify-content:space-between; font-size:0.75rem; font-weight:700;">
+          <a href="${pageContext.request.contextPath}/products" style="color:#2563eb;">Kho hàng &rarr;</a>
+          <a href="${pageContext.request.contextPath}/stocktakes" style="color:#475569;">Kiểm kê &rarr;</a>
         </div>
       </div>
     </div>
@@ -147,5 +171,15 @@
         </a>
       </div>
     </div>
+
+    <!-- Quick 1-Click Logout Button (Directly next to user info for Staff & Manager) -->
+    <a href="${pageContext.request.contextPath}/logout" 
+       class="btn-direct-logout" 
+       title="Đăng xuất khỏi hệ thống" 
+       onclick="return confirm('Bạn có chắc chắn muốn đăng xuất không?');"
+       style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 0.8rem; font-weight: 700; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; text-decoration: none; cursor: pointer; transition: all 0.2s ease;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span>Đăng xuất</span>
+    </a>
   </div>
 </header>

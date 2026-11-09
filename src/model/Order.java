@@ -12,6 +12,7 @@ public class Order implements Serializable {
     private int id;
     private String code;
     private int createdBy;
+    private Integer shiftId; // Liên kết ca làm việc
     private double totalAmount;
     private String paymentMethod;
     private String status;
@@ -37,11 +38,36 @@ public class Order implements Serializable {
         this.details = new ArrayList<>();
     }
 
+    public Order(int id, String code, int createdBy, Integer shiftId, double totalAmount, String paymentMethod, Timestamp createdAt) {
+        this.id = id;
+        this.code = code;
+        this.createdBy = createdBy;
+        this.shiftId = shiftId;
+        this.totalAmount = totalAmount;
+        this.paymentMethod = paymentMethod;
+        this.status = "Đã thanh toán";
+        this.createdAt = createdAt;
+        this.details = new ArrayList<>();
+    }
+
     public Order(int id, String code, int createdBy, String staffName, double totalAmount, String paymentMethod, String status, Timestamp createdAt) {
         this.id = id;
         this.code = code;
         this.createdBy = createdBy;
         this.staffName = staffName;
+        this.totalAmount = totalAmount;
+        this.paymentMethod = paymentMethod;
+        this.status = status != null ? status : "Đã thanh toán";
+        this.createdAt = createdAt;
+        this.details = new ArrayList<>();
+    }
+
+    public Order(int id, String code, int createdBy, String staffName, Integer shiftId, double totalAmount, String paymentMethod, String status, Timestamp createdAt) {
+        this.id = id;
+        this.code = code;
+        this.createdBy = createdBy;
+        this.staffName = staffName;
+        this.shiftId = shiftId;
         this.totalAmount = totalAmount;
         this.paymentMethod = paymentMethod;
         this.status = status != null ? status : "Đã thanh toán";
@@ -71,6 +97,14 @@ public class Order implements Serializable {
 
     public void setCreatedBy(int createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Integer getShiftId() {
+        return shiftId;
+    }
+
+    public void setShiftId(Integer shiftId) {
+        this.shiftId = shiftId;
     }
 
     public double getTotalAmount() {

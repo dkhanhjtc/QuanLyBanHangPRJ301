@@ -10,16 +10,39 @@ function switchProductTab(tabName) {
   const approvalsView = document.getElementById('approvalsTableView');
 
   if (tabName === 'approvals') {
-    productsTabBtn.classList.remove('active');
-    approvalsTabBtn.classList.add('active');
-    productsView.style.display = 'none';
-    approvalsView.style.display = 'block';
+    if (productsTabBtn) productsTabBtn.classList.remove('active');
+    if (approvalsTabBtn) approvalsTabBtn.classList.add('active');
+    if (productsView) productsView.style.display = 'none';
+    if (approvalsView) approvalsView.style.display = 'block';
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', (window.CONTEXT_PATH || '') + '/products?tab=approvals');
+    }
   } else {
-    approvalsTabBtn.classList.remove('active');
-    productsTabBtn.classList.add('active');
-    approvalsView.style.display = 'none';
-    productsView.style.display = 'block';
+    if (approvalsTabBtn) approvalsTabBtn.classList.remove('active');
+    if (productsTabBtn) productsTabBtn.classList.add('active');
+    if (approvalsView) approvalsView.style.display = 'none';
+    if (productsView) productsView.style.display = 'block';
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', (window.CONTEXT_PATH || '') + '/products');
+    }
   }
+}
+
+// Handler cho nút chỉnh sửa với data attributes
+function handleEditProduct(btn) {
+  if (!btn) return;
+  const ds = btn.dataset;
+  openProductEditModal(
+    ds.sku || '',
+    ds.name || '',
+    ds.category || '',
+    ds.unit || '',
+    ds.cost || '',
+    ds.price || '',
+    ds.stock || '0',
+    ds.min || '0',
+    ds.image || ''
+  );
 }
 
 // Open Product Edit Modal with Data

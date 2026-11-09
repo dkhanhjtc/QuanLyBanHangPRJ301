@@ -2,9 +2,13 @@ package controller;
 
 import dal.ActivityLogDAO;
 import dal.ProductDAO;
+import dal.StockTransactionDAO;
+import dal.SupplierDAO;
+import dal.SystemNotificationDAO;
 import model.ActivityLog;
 import model.Product;
 import model.PurchaseOrder;
+import model.Supplier;
 import model.User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -20,6 +24,9 @@ public class ProductServlet extends HttpServlet {
 
     private final ProductDAO productDAO = new ProductDAO();
     private final ActivityLogDAO logDAO = new ActivityLogDAO();
+    private final SupplierDAO supplierDAO = new SupplierDAO();
+    private final StockTransactionDAO stockTransactionDAO = new StockTransactionDAO();
+    private final SystemNotificationDAO notificationDAO = new SystemNotificationDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -40,6 +47,17 @@ public class ProductServlet extends HttpServlet {
         List<Product> lowStockProducts = productDAO.getLowStockProducts();
         request.setAttribute("lowStockProducts", lowStockProducts);
         request.setAttribute("lowStockCount", lowStockProducts.size());
+
+        // 3. Tải danh sách nhà cung cấp (Suppliers) cho dropdown
+        List<Supplier> suppliers = supplierDAO.getAllSuppliers();
+        request.setAttribute("suppliers", suppliers);
+
+        // 4. Tải danh sách thông báo hệ thống cho người dùng hiện tại
+        HttpSession session = request.getSession(false);
+        User currentUser = (session != null) ? (User) session.getAttribute("user") : null;
+        Integer currentUserId = (currentUser != null) ? currentUser.getId() : null;
+        request.setAttribute("notifications", notificationDAO.getNotificationsForUser(currentUserId, 5));
+        request.setAttribute("unreadNotificationCount", notificationDAO.getUnreadCount(currentUserId));
 
         // 3. Tính toán tổng đơn vị tồn kho và giá trị vốn kho
         int totalUnits = 0;
@@ -100,7 +118,23 @@ public class ProductServlet extends HttpServlet {
             }
 
             if (poId > 0) {
+                PurchaseOrder targetPo = productDAO.getPurchaseOrderByCode(poCode);
                 productDAO.updatePurchaseOrderStatus(poId, "APPROVED", "Đã duyệt nhập kho");
+
+                // Ghi nhận biến động thẻ kho StockTransactions khi duyệt phiếu nhập
+                if (targetPo != null) {
+                    int prodIntId = 0;
+                    try { prodIntId = Integer.parseInt(targetPo.getProductId()); } catch (Exception ignored) {}
+                    stockTransactionDAO.logTransaction(prodIntId, targetPo.getTotalQuantity(), 
+                        targetPo.getStockBefore(), targetPo.getStockAfter(), "PURCHASE_IN", 
+                        targetPo.getCode(), userId, "Duyệt nhập kho từ đối tác " + targetPo.getSupplierName());
+                    
+                    // Tạo thông báo thông minh cho người đề xuất và quản lý
+                    notificationDAO.createNotification(targetPo.getCreatedBy(), "Phiếu nhập đã được duyệt", 
+                        "Phiếu " + targetPo.getCode() + " (" + targetPo.getProductName() + " +" + targetPo.getTotalQuantity() + ") đã được Quản lý " + userName + " duyệt vào kho.", 
+                        "PURCHASE_APPROVED", "products?tab=approvals");
+                }
+
                 logDAO.log(new ActivityLog(0, userId, userName, "Duyệt hàng về", 
                     "Duyệt nhập kho thành công cho phiếu " + (poCode != null ? poCode : ("ID " + poId)), 
                     request.getRemoteAddr(), userRole, poCode != null ? poCode : ("PN-" + poId), "Thành công", null));
@@ -125,7 +159,16 @@ public class ProductServlet extends HttpServlet {
             }
 
             if (poId > 0) {
+                PurchaseOrder targetPo = productDAO.getPurchaseOrderByCode(poCode);
                 productDAO.updatePurchaseOrderStatus(poId, "REJECTED", rejectReason);
+
+                // Tạo thông báo thông minh cho người tạo phiếu
+                if (targetPo != null) {
+                    notificationDAO.createNotification(targetPo.getCreatedBy(), "Phiếu nhập bị từ chối", 
+                        "Phiếu " + targetPo.getCode() + " bị từ chối bởi " + userName + ". Lý do: " + rejectReason, 
+                        "PURCHASE_REJECTED", "products?tab=approvals");
+                }
+
                 logDAO.log(new ActivityLog(0, userId, userName, "Từ chối hàng về", 
                     "Lý do: " + rejectReason, request.getRemoteAddr(), userRole, 
                     poCode != null ? poCode : ("PN-" + poId), "Đã từ chối", null));

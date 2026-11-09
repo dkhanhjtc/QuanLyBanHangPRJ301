@@ -1,0 +1,16 @@
+{
+  "java.project.sourcePaths": ["src"],
+  "java.project.outputPath": "build/web/WEB-INF/classes",
+  "java.project.referencedLibraries": [
+    "allowedlib/**/*.jar",
+    "web/WEB-INF/lib/**/*.jar"
+  ],
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-17",
+      "path": "C:\\Program Files\\Java\\jdk-17.0.1",
+      "default": true
+    }
+  ]
+}
+

@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
@@ -22,10 +22,14 @@
 <body>
 
 <div class="app-container">
-  <jsp:include page="/common/sidebar.jsp" />
+  <jsp:include page="/common/sidebar.jsp">
+    <jsp:param name="activeMenu" value="admin_users" />
+  </jsp:include>
 
   <div class="main-content">
-    <jsp:include page="/common/header.jsp" />
+    <jsp:include page="/common/header.jsp">
+      <jsp:param name="breadcrumbCurrent" value="Tài khoản & mã" />
+    </jsp:include>
 
     <div class="page-body">
       <!-- Page Top Header -->
@@ -132,7 +136,7 @@
                                 <form action="${pageContext.request.contextPath}/admin-users" method="POST" style="display:inline;">
                                   <input type="hidden" name="action" value="toggle_status">
                                   <input type="hidden" name="userId" value="${u.id}">
-                                  <button type="submit" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.75rem; ${u.isActive ? 'color: #dc2626; border-color: #fca5a5;' : 'color: #059669; border-color: #6ee7b7;'}" onclick="return confirm('Xác nhận ${u.isActive ? \"THU HỒI\" : \"KÍCH HOẠT LẠI\"} tài khoản của ${u.fullName}?')">
+                                  <button type="submit" class="btn btn-outline" style="padding: 4px 10px; font-size: 0.75rem; ${u.isActive ? 'color: #dc2626; border-color: #fca5a5;' : 'color: #059669; border-color: #6ee7b7;'}" onclick="return confirm('Xác nhận thay đổi trạng thái tài khoản của ${u.fullName}?')">
                                     <span>${u.isActive ? 'Thu hồi' : 'Kích hoạt'}</span>
                                   </button>
                                 </form>

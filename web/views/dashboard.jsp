@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
@@ -18,11 +18,15 @@
 
 <div class="app-container">
   <!-- Dynamic Sidebar -->
-  <jsp:include page="/common/sidebar.jsp" />
+  <jsp:include page="/common/sidebar.jsp">
+    <jsp:param name="activeMenu" value="dashboard" />
+  </jsp:include>
 
   <!-- Main Work Area -->
   <div class="main-content">
-    <jsp:include page="/common/header.jsp" />
+    <jsp:include page="/common/header.jsp">
+      <jsp:param name="breadcrumbCurrent" value="Tổng quan vận hành" />
+    </jsp:include>
 
     <div class="page-body">
       <!-- Page Top Header -->

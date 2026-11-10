@@ -164,7 +164,7 @@
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label">Người lập phiếu</label>
-            <input type="text" class="form-input" value="<c:out value='${sessionScope.user != null ? sessionScope.user.fullName : \"Nguyễn Minh Hà\"}' />" readonly style="background: #f8fafc; color: #475569;">
+            <input type="text" class="form-input" value="${not empty sessionScope.user.fullName ? sessionScope.user.fullName : 'Nguyễn Minh Hà'}" readonly style="background: #f8fafc; color: #475569;">
           </div>
         </div>
 

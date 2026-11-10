@@ -13,7 +13,6 @@ import java.util.List;
 public class UserDAO extends DBContext {
 
     /**
-<<<<<<< HEAD
      * Hàm băm SHA-256 hỗ trợ so sánh mật khẩu
      */
     public static String hashSHA256(String input) {
@@ -81,53 +80,53 @@ public class UserDAO extends DBContext {
 
         // =========================================================================
         // 2. NẾU KHÔNG KHỚP 3 TÀI KHOẢN HARDCODE, TRUY VẤN VÀO CSDL SQL SERVER
+        // Hỗ trợ cả 2 schema bảng Users
         // =========================================================================
-        String sql = "SELECT id, loginCode, phone, fullName, password, role, isActive, createdAt " +
-                     "FROM Users " +
-                     "WHERE (loginCode = ? OR phone = ? OR REPLACE(phone, ' ', '') = ?) " +
-                     "  AND (password = ? OR password = ?) " +
-                     "  AND isActive = 1";
-=======
-     * Xác thực thông tin đăng nhập theo số điện thoại và passcode.
-     * Tương thích hoàn toàn với schema mới QuanLyBanHangThoiTrang (user_id, phone, passcode, full_name, role, status).
-     */
-    public User login(String loginCodeOrPhone, String password) {
-        String sql = "SELECT user_id, phone, full_name, passcode, role, status, created_at " +
-                     "FROM Users " +
-                     "WHERE (phone = ? OR REPLACE(phone, ' ', '') = ?) " +
-                     "  AND passcode = ? " +
-                     "  AND status = 'ACTIVE'";
->>>>>>> origin/Tu
+        String sql1 = "SELECT id, loginCode, phone, fullName, password, role, isActive, createdAt " +
+                      "FROM Users " +
+                      "WHERE (loginCode = ? OR phone = ? OR REPLACE(phone, ' ', '') = ?) " +
+                      "  AND (password = ? OR password = ?) " +
+                      "  AND isActive = 1";
 
         try (Connection con = getConnection()) {
             if (con != null) {
-                try (PreparedStatement ps = con.prepareStatement(sql)) {
+                try (PreparedStatement ps = con.prepareStatement(sql1)) {
                     ps.setString(1, cleanCode);
                     ps.setString(2, cleanCode);
                     ps.setString(3, cleanPhone);
                     ps.setString(4, password);
                     ps.setString(5, hashedPassword);
 
-<<<<<<< HEAD
                     try (ResultSet rs = ps.executeQuery()) {
                         if (rs.next()) {
                             return mapUser(rs);
                         }
                     }
-=======
-            String cleanPhone = loginCodeOrPhone != null ? loginCodeOrPhone.replace(" ", "") : "";
-            ps.setString(1, loginCodeOrPhone);
-            ps.setString(2, cleanPhone);
-            ps.setString(3, password);
+                } catch (Exception e1) {
+                    // Fallback thử schema 2 (user_id, phone, full_name, passcode, role, status)
+                    String sql2 = "SELECT user_id, phone, full_name, passcode, role, status, created_at " +
+                                  "FROM Users " +
+                                  "WHERE (phone = ? OR REPLACE(phone, ' ', '') = ?) " +
+                                  "  AND (passcode = ? OR passcode = ?) " +
+                                  "  AND status = 'ACTIVE'";
+                    try (PreparedStatement ps2 = con.prepareStatement(sql2)) {
+                        ps2.setString(1, cleanCode);
+                        ps2.setString(2, cleanPhone);
+                        ps2.setString(3, password);
+                        ps2.setString(4, hashedPassword);
 
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return mapUser(rs);
->>>>>>> origin/Tu
+                        try (ResultSet rs2 = ps2.executeQuery()) {
+                            if (rs2.next()) {
+                                return mapUser(rs2);
+                            }
+                        }
+                    } catch (Exception e2) {
+                        System.err.println("UserDAO login error: " + e2.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {
-            System.err.println("UserDAO login error: " + e.getMessage());
+            System.err.println("UserDAO connection error: " + e.getMessage());
         }
 
         return null;
@@ -139,8 +138,7 @@ public class UserDAO extends DBContext {
      */
     public List<User> getAllUsers() {
         List<User> list = new ArrayList<>();
-        String sql = "SELECT user_id, phone, full_name, passcode, role, status, created_at " +
-                     "FROM Users ORDER BY user_id ASC";
+        String sql = "SELECT * FROM Users";
 
         try (Connection con = getConnection()) {
             if (con != null) {
@@ -155,7 +153,7 @@ public class UserDAO extends DBContext {
             System.err.println("UserDAO getAllUsers error: " + e.getMessage());
         }
 
-        // Fallback danh sách 3 tài khoản kiểm thử nếu CSDL rỗng hoặc offline
+        // Fallback danh sách tài khoản kiểm thử nếu CSDL rỗng hoặc offline
         if (list.isEmpty()) {
             Timestamp now = new Timestamp(System.currentTimeMillis());
             list.add(new User(1, "AN-SA-001", "090 123 4123", "Mai Anh", "123456", "ADMIN", true, now));
@@ -174,13 +172,13 @@ public class UserDAO extends DBContext {
      * @return User đối tượng người dùng hoặc null
      */
     public User getUserById(int userId) {
-        String sql = "SELECT user_id, phone, full_name, passcode, role, status, created_at " +
-                     "FROM Users WHERE user_id = ?";
+        String sql = "SELECT * FROM Users WHERE id = ? OR user_id = ?";
 
         try (Connection con = getConnection()) {
             if (con != null) {
                 try (PreparedStatement ps = con.prepareStatement(sql)) {
                     ps.setInt(1, userId);
+                    ps.setInt(2, userId);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (rs.next()) {
                             return mapUser(rs);
@@ -192,27 +190,43 @@ public class UserDAO extends DBContext {
             System.err.println("UserDAO getUserById error: " + e.getMessage());
         }
 
+        // Fallback kiểm tra từ danh sách kiểm thử
         for (User u : getAllUsers()) {
             if (u.getId() == userId) return u;
         }
+
         return null;
     }
 
     /**
-     * Khóa hoặc mở khóa tài khoản
+     * Đảo trạng thái kích hoạt của người dùng (Khoá / Mở khoá)
+     * @param userId ID người dùng
+     * @return boolean kết quả thành công hay thất bại
      */
     public boolean toggleUserStatus(int userId) {
-        String sql = "UPDATE Users SET status = CASE WHEN status = 'ACTIVE' THEN 'REVOKED' ELSE 'ACTIVE' END WHERE user_id = ?";
+        User u = getUserById(userId);
+        if (u == null) return false;
+        boolean newStatus = !u.isIsActive();
+
+        String sql1 = "UPDATE Users SET isActive = ? WHERE id = ?";
+        String sql2 = "UPDATE Users SET status = ? WHERE user_id = ?";
 
         try (Connection con = getConnection()) {
             if (con != null) {
-                try (PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setInt(1, userId);
+                try (PreparedStatement ps = con.prepareStatement(sql1)) {
+                    ps.setBoolean(1, newStatus);
+                    ps.setInt(2, userId);
                     return ps.executeUpdate() > 0;
+                } catch (Exception e) {
+                    try (PreparedStatement ps2 = con.prepareStatement(sql2)) {
+                        ps2.setString(1, newStatus ? "ACTIVE" : "REVOKED");
+                        ps2.setInt(2, userId);
+                        return ps2.executeUpdate() > 0;
+                    }
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("UserDAO toggleUserStatus error: " + e.getMessage());
         }
         return true;
     }
@@ -221,27 +235,25 @@ public class UserDAO extends DBContext {
      * Cập nhật vai trò người dùng (ADMIN, MANAGER, STAFF)
      */
     public boolean updateRole(int userId, String role) {
-        String sql = "UPDATE Users SET role = ? WHERE user_id = ?";
+        String sql1 = "UPDATE Users SET role = ? WHERE id = ?";
+        String sql2 = "UPDATE Users SET role = ? WHERE user_id = ?";
 
-<<<<<<< HEAD
         try (Connection con = getConnection()) {
             if (con != null) {
-                try (PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setString(1, role.toUpperCase());
+                try (PreparedStatement ps = con.prepareStatement(sql1)) {
+                    ps.setString(1, role != null ? role.toUpperCase() : "STAFF");
                     ps.setInt(2, userId);
                     return ps.executeUpdate() > 0;
+                } catch (Exception e) {
+                    try (PreparedStatement ps2 = con.prepareStatement(sql2)) {
+                        ps2.setString(1, role != null ? role.toUpperCase() : "STAFF");
+                        ps2.setInt(2, userId);
+                        return ps2.executeUpdate() > 0;
+                    }
                 }
             }
-=======
-        try (Connection con = getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, role != null ? role.toUpperCase() : "STAFF");
-            ps.setInt(2, userId);
-            return ps.executeUpdate() > 0;
->>>>>>> origin/Tu
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("UserDAO updateRole error: " + e.getMessage());
         }
         return true;
     }
@@ -250,48 +262,79 @@ public class UserDAO extends DBContext {
      * Thêm tài khoản người dùng mới
      */
     public boolean addUser(User u) {
-        String sql = "INSERT INTO Users (phone, passcode, full_name, role, status, created_at) " +
-                     "VALUES (?, ?, ?, ?, ?, GETDATE())";
+        String sql = "INSERT INTO Users (loginCode, phone, fullName, password, role, isActive, createdAt) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, GETDATE())";
 
-<<<<<<< HEAD
         try (Connection con = getConnection()) {
             if (con != null) {
                 try (PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setString(1, u.getLoginCode());
+                    ps.setString(1, u.getLoginCode() != null ? u.getLoginCode() : u.getPhone());
                     ps.setString(2, u.getPhone());
                     ps.setString(3, u.getFullName());
                     ps.setString(4, u.getPassword());
-                    ps.setString(5, u.getRole().toUpperCase());
+                    ps.setString(5, u.getRole() != null ? u.getRole().toUpperCase() : "STAFF");
                     ps.setBoolean(6, u.isIsActive());
                     return ps.executeUpdate() > 0;
+                } catch (Exception e) {
+                    // Fallback schema 2
+                    String sql2 = "INSERT INTO Users (phone, passcode, full_name, role, status, created_at) " +
+                                  "VALUES (?, ?, ?, ?, ?, GETDATE())";
+                    try (PreparedStatement ps2 = con.prepareStatement(sql2)) {
+                        ps2.setString(1, u.getPhone());
+                        ps2.setString(2, u.getPassword());
+                        ps2.setString(3, u.getFullName());
+                        ps2.setString(4, u.getRole() != null ? u.getRole().toUpperCase() : "STAFF");
+                        ps2.setString(5, u.isIsActive() ? "ACTIVE" : "REVOKED");
+                        return ps2.executeUpdate() > 0;
+                    }
                 }
             }
-=======
-        try (Connection con = getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, u.getPhone());
-            ps.setString(2, u.getPassword());
-            ps.setString(3, u.getFullName());
-            ps.setString(4, u.getRole() != null ? u.getRole().toUpperCase() : "STAFF");
-            ps.setString(5, u.isIsActive() ? "ACTIVE" : "REVOKED");
-            return ps.executeUpdate() > 0;
->>>>>>> origin/Tu
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("UserDAO addUser error: " + e.getMessage());
         }
         return true;
     }
 
+    /**
+     * Ánh xạ ResultSet linh hoạt cho cả 2 kiểu cột (schema 1: id, loginCode, fullName... / schema 2: user_id, full_name...)
+     */
     private User mapUser(ResultSet rs) throws Exception {
-        int id = rs.getInt("user_id");
-        String phone = rs.getString("phone");
-        String fullName = rs.getString("full_name");
-        String password = rs.getString("passcode");
-        String role = rs.getString("role");
-        String status = rs.getString("status");
-        boolean isActive = "ACTIVE".equalsIgnoreCase(status);
-        Timestamp createdAt = rs.getTimestamp("created_at");
-        return new User(id, phone, phone, fullName, password, role, isActive, createdAt);
+        int id = 0;
+        try { id = rs.getInt("id"); } catch (Exception e) { id = rs.getInt("user_id"); }
+
+        String phone = "";
+        try { phone = rs.getString("phone"); } catch (Exception e) {}
+
+        String loginCode = phone;
+        try { loginCode = rs.getString("loginCode"); } catch (Exception e) {}
+        if (loginCode == null || loginCode.isEmpty()) loginCode = phone;
+
+        String fullName = "";
+        try { fullName = rs.getString("fullName"); } catch (Exception e) { fullName = rs.getString("full_name"); }
+
+        String password = "";
+        try { password = rs.getString("password"); } catch (Exception e) { password = rs.getString("passcode"); }
+
+        String role = "STAFF";
+        try { role = rs.getString("role"); } catch (Exception e) {}
+
+        boolean isActive = true;
+        try {
+            isActive = rs.getBoolean("isActive");
+        } catch (Exception e) {
+            try {
+                String status = rs.getString("status");
+                isActive = "ACTIVE".equalsIgnoreCase(status);
+            } catch (Exception ex) {}
+        }
+
+        Timestamp createdAt = null;
+        try { createdAt = rs.getTimestamp("createdAt"); } catch (Exception e) {
+            try { createdAt = rs.getTimestamp("created_at"); } catch (Exception ex) {
+                createdAt = new Timestamp(System.currentTimeMillis());
+            }
+        }
+
+        return new User(id, loginCode, phone, fullName, password, role, isActive, createdAt);
     }
 }

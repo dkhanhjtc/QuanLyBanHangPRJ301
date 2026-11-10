@@ -350,7 +350,7 @@
             ${st.title} · Nhân viên phụ trách: <strong>${st.assignedTo}</strong>
           </div>
         </div>
-        <button type="button" class="modal-close" onclick="closeStocktakeModal('${st.code}')">&times;</button>
+        <button type="button" class="modal-close" onclick="closeStocktakeModal('${st.code}')">&#215;</button>
       </div>
 
       <div class="modal-body" style="padding: 0;">

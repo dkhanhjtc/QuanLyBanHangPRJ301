@@ -149,7 +149,7 @@
         <h3 class="modal-title">Tạo phiếu nhập hàng về kho</h3>
         <div class="modal-sub">Ghi nhận lô hàng mới từ đối tác xưởng may hoặc nhà cung cấp</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeNewInboundModal()">&times;</button>
+      <button type="button" class="modal-close" onclick="closeNewInboundModal()">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/inbound-shipments" method="POST">
@@ -236,7 +236,7 @@
         <h3 class="modal-title">Từ chối phiếu <span id="rejectTicketIdTitle">PN-025</span></h3>
         <div class="modal-sub">Nhập lý do từ chối phiếu hàng về</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeRejectModal()">&times;</button>
+      <button type="button" class="modal-close" onclick="closeRejectModal()">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/inbound-shipments" method="POST">

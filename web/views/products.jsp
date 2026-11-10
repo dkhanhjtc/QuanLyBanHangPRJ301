@@ -153,21 +153,23 @@
                           <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
                             <button type="button" class="btn btn-outline edit-prod-btn" style="padding: 5px 12px; font-size: 0.8rem;" 
                                     data-sku="${p.sku}"
-                                    data-name="<c:out value='${p.name}'/>"
-                                    data-category="<c:out value='${p.category}'/>"
-                                    data-unit="<c:out value='${p.unit}'/>"
-                                    data-spec="<c:out value='${p.spec}'/>"
+                                    data-name="${p.name}"
+                                    data-category="${p.category}"
+                                    data-unit="${p.unit}"
+                                    data-spec="${p.spec}"
                                     data-cost="${p.costPrice}"
                                     data-price="${p.price}"
                                     data-stock="${p.stockQuantity}"
                                     data-minstock="${p.minStock}"
-                                    data-image="<c:out value='${p.imageUrl}'/>"
+                                    data-image="${p.imageUrl}"
                                     onclick="handleEditProductClick(this)">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                               <span>Sửa</span>
                             </button>
                             <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem; color: #dc2626; border-color: #fecaca; background: #fff5f5;"
-                                    onclick="openDeleteProductModal('${p.sku}', '<c:out value="${p.name}"/>')">
+                                    data-sku="${p.sku}"
+                                    data-name="${p.name}"
+                                    onclick="openDeleteProductModal(this.getAttribute('data-sku'), this.getAttribute('data-name'))">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                               <span>Xóa</span>
                             </button>
@@ -209,7 +211,7 @@
         <h3 class="modal-title" id="modalProductTitle">Thông tin hàng hóa</h3>
         <div class="modal-sub" id="modalProductSubtitle">Cập nhật thông tin trong danh mục kho hàng</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('productEditModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('productEditModal')">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/products" method="POST">
@@ -327,7 +329,7 @@
   <div class="modal-window" style="max-width: 440px; width: 90%;">
     <div class="modal-header">
       <h3 class="modal-title" style="color: #dc2626;">Xác nhận xóa hàng hóa</h3>
-      <button type="button" class="modal-close" onclick="closeModal('deleteProductModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('deleteProductModal')">&#215;</button>
     </div>
     <form action="${pageContext.request.contextPath}/products" method="POST">
       <input type="hidden" name="action" value="delete">

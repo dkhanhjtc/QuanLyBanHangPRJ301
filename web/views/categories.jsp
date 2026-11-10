@@ -156,7 +156,7 @@
         <h3 class="modal-title" id="categoryModalTitle">Thêm danh mục mới</h3>
         <div class="modal-sub">Cấu trúc nhóm hàng hóa trong kho &amp; quầy bán</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('categoryModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('categoryModal')">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/categories" method="POST">
@@ -190,7 +190,7 @@
   <div class="modal-window" style="max-width: 440px; width: 90%;">
     <div class="modal-header">
       <h3 class="modal-title" style="color: #dc2626;">Xác nhận xóa danh mục</h3>
-      <button type="button" class="modal-close" onclick="closeModal('deleteCategoryModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('deleteCategoryModal')">&#215;</button>
     </div>
     <form action="${pageContext.request.contextPath}/categories" method="POST">
       <input type="hidden" name="action" value="delete">

@@ -287,7 +287,7 @@
         <h3 class="modal-title" style="color: #16a34a;">Bắt đầu ca làm việc</h3>
         <div class="modal-sub">Khai báo số tiền mặt trong két để mở phiên bán hàng</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('startShiftModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('startShiftModal')">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/pos" method="POST">
@@ -329,7 +329,7 @@
         <h3 class="modal-title" style="color: #dc2626;">Kết ca làm việc</h3>
         <div class="modal-sub">Chốt doanh số ca và bàn giao két tiền cuối ca</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('closeShiftModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('closeShiftModal')">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/pos" method="POST">
@@ -383,7 +383,7 @@
         <h3 class="modal-title">Hóa đơn bán hàng</h3>
         <div class="modal-sub">Giao dịch đã được ghi nhận vào CSDL SQL Server</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('invoiceModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('invoiceModal')">&#215;</button>
     </div>
 
     <div class="modal-body" style="padding: 24px 32px;">
@@ -464,7 +464,7 @@
         <h3 class="modal-title">Đơn hàng trong ca</h3>
         <div class="modal-sub"><c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Lê Lan Anh'}" /> · Hôm nay</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('shiftOrdersModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('shiftOrdersModal')">&#215;</button>
     </div>
 
     <div class="modal-body">

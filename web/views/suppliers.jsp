@@ -161,7 +161,7 @@
         <h3 class="modal-title" id="supplierModalTitle">Thêm nhà cung cấp mới</h3>
         <div class="modal-sub">Thông tin đối tác cung ứng &amp; xưởng may gia công</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('supplierModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('supplierModal')">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/suppliers" method="POST">
@@ -214,7 +214,7 @@
   <div class="modal-window" style="max-width: 440px; width: 90%;">
     <div class="modal-header">
       <h3 class="modal-title" style="color: #dc2626;">Xác nhận xóa nhà cung cấp</h3>
-      <button type="button" class="modal-close" onclick="closeModal('deleteSupplierModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('deleteSupplierModal')">&#215;</button>
     </div>
     <form action="${pageContext.request.contextPath}/suppliers" method="POST">
       <input type="hidden" name="action" value="delete">

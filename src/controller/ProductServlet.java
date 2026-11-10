@@ -193,10 +193,16 @@ public class ProductServlet extends HttpServlet {
             if (sku != null && !sku.trim().isEmpty()) {
                 Product p = productDAO.getProductById(sku);
                 String pName = p != null ? p.getName() : sku;
-                productDAO.deleteProduct(sku);
-                logDAO.log(new ActivityLog(0, userId, userName, "Xóa hàng hóa", 
-                    "Xóa sản phẩm " + pName + " (" + sku + ") khỏi kho hàng", 
-                    request.getRemoteAddr(), userRole, sku, "Thành công", null));
+                boolean deleted = productDAO.deleteProduct(sku);
+                if (deleted) {
+                    logDAO.log(new ActivityLog(0, userId, userName, "Xóa hàng hóa", 
+                        "Xóa sản phẩm " + pName + " (" + sku + ") khỏi kho hàng", 
+                        request.getRemoteAddr(), userRole, sku, "Thành công", null));
+                } else {
+                    logDAO.log(new ActivityLog(0, userId, userName, "Xóa hàng hóa", 
+                        "Không thể xóa sản phẩm " + pName + " (" + sku + ") do ràng buộc hệ thống", 
+                        request.getRemoteAddr(), userRole, sku, "Thất bại", null));
+                }
             }
             response.sendRedirect(request.getContextPath() + "/products");
             return;

@@ -112,6 +112,7 @@ public class CategoryDAO extends DBContext {
 
         String reassignProductsSql = "UPDATE Products SET category_id = 1 WHERE category_id = ?";
         String reassignStocktakesSql = "UPDATE Stocktakes SET category_id = 1 WHERE category_id = ?";
+        String reassignAssignmentsSql = "UPDATE StocktakeAssignments SET category_id = 1 WHERE category_id = ?";
         String deleteSql = "DELETE FROM Categories WHERE category_id = ?";
 
         Connection con = null;
@@ -127,6 +128,11 @@ public class CategoryDAO extends DBContext {
             try (PreparedStatement psS = con.prepareStatement(reassignStocktakesSql)) {
                 psS.setInt(1, id);
                 psS.executeUpdate();
+            }
+
+            try (PreparedStatement psA = con.prepareStatement(reassignAssignmentsSql)) {
+                psA.setInt(1, id);
+                psA.executeUpdate();
             }
 
             try (PreparedStatement psD = con.prepareStatement(deleteSql)) {
@@ -145,3 +151,4 @@ public class CategoryDAO extends DBContext {
         return false;
     }
 }
+

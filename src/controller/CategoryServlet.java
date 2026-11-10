@@ -132,3 +132,4 @@ public class CategoryServlet extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/categories");
     }
 }
+

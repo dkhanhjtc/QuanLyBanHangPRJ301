@@ -162,27 +162,91 @@ public class ProductDAO extends DBContext {
     }
 
     /**
-     * Xóa sản phẩm an toàn: cố gắng xóa cứng nếu chưa có giao dịch, nếu đã có giao dịch thì soft delete status='INACTIVE'
+     * Xóa sản phẩm an toàn:
+     * - Nếu sản phẩm đã từng có đơn hàng bán ra (OrderDetails): chuyển trạng thái sang DISCONTINUED (ngừng kinh doanh) để bảo toàn báo cáo doanh thu.
+     * - Nếu sản phẩm chưa từng bán ra: dọn dẹp các liên kết phụ trợ (kiểm kê nháp, phiếu nhập) rồi xóa hẳn khỏi bảng Products.
+     * Cả 2 trường hợp sản phẩm đều sẽ biến mất khỏi danh sách hàng hóa đang kinh doanh.
      */
     public boolean deleteProduct(String skuOrId) {
-        String deleteSql = "DELETE FROM Products WHERE product_code = ? OR CAST(product_id AS VARCHAR(50)) = ?";
-        String deactivateSql = "UPDATE Products SET status = 'INACTIVE' WHERE product_code = ? OR CAST(product_id AS VARCHAR(50)) = ?";
+        Product p = getProductById(skuOrId);
+        if (p == null) {
+            return false;
+        }
 
-        try (Connection con = getConnection()) {
-            try (PreparedStatement ps = con.prepareStatement(deleteSql)) {
-                ps.setString(1, skuOrId);
-                ps.setString(2, skuOrId);
-                if (ps.executeUpdate() > 0) return true;
-            } catch (Exception fkEx) {
-                // Vướng khóa ngoại bảng đơn hàng/kiểm kê -> Chuyển sang INACTIVE
-                try (PreparedStatement ps2 = con.prepareStatement(deactivateSql)) {
-                    ps2.setString(1, skuOrId);
-                    ps2.setString(2, skuOrId);
-                    return ps2.executeUpdate() > 0;
+        int prodId = 0;
+        try {
+            prodId = Integer.parseInt(p.getId());
+        } catch (Exception ignored) {}
+
+        String checkOrdersSql = "SELECT COUNT(*) FROM OrderDetails WHERE product_id = ?";
+        String deleteStocktakeSql = "DELETE FROM StocktakeDetails WHERE product_id = ?";
+        String deleteInboundSql = "DELETE FROM InboundShipmentDetails WHERE product_id = ?";
+        String deleteTransSql = "DELETE FROM StockTransactions WHERE product_id = ?";
+        String deleteProductSql = "DELETE FROM Products WHERE product_id = ? OR product_code = ?";
+        String discontinueSql = "UPDATE Products SET status = 'DISCONTINUED' WHERE product_id = ? OR product_code = ?";
+
+        Connection con = null;
+        try {
+            con = getConnection();
+
+            boolean hasOrders = false;
+            if (prodId > 0) {
+                try (PreparedStatement ps = con.prepareStatement(checkOrdersSql)) {
+                    ps.setInt(1, prodId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            hasOrders = true;
+                        }
+                    }
+                }
+            }
+
+            if (hasOrders) {
+                // Đã có đơn hàng bán ra: Soft delete sang DISCONTINUED
+                try (PreparedStatement ps = con.prepareStatement(discontinueSql)) {
+                    ps.setInt(1, prodId);
+                    ps.setString(2, skuOrId);
+                    return ps.executeUpdate() > 0;
+                }
+            } else {
+                // Chưa có đơn hàng: Dọn dẹp bản ghi kiểm kê/nhập nháp rồi xóa cứng
+                con.setAutoCommit(false);
+                if (prodId > 0) {
+                    try (PreparedStatement ps = con.prepareStatement(deleteStocktakeSql)) {
+                        ps.setInt(1, prodId);
+                        ps.executeUpdate();
+                    }
+                    try (PreparedStatement ps = con.prepareStatement(deleteInboundSql)) {
+                        ps.setInt(1, prodId);
+                        ps.executeUpdate();
+                    }
+                    try (PreparedStatement ps = con.prepareStatement(deleteTransSql)) {
+                        ps.setInt(1, prodId);
+                        ps.executeUpdate();
+                    }
+                }
+                try (PreparedStatement ps = con.prepareStatement(deleteProductSql)) {
+                    ps.setInt(1, prodId);
+                    ps.setString(2, skuOrId);
+                    int affected = ps.executeUpdate();
+                    con.commit();
+                    return affected > 0;
+                } catch (Exception innerEx) {
+                    con.rollback();
+                    // Fallback sang DISCONTINUED nếu còn ràng buộc khác
+                    try (PreparedStatement ps = con.prepareStatement(discontinueSql)) {
+                        ps.setInt(1, prodId);
+                        ps.setString(2, skuOrId);
+                        return ps.executeUpdate() > 0;
+                    }
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            if (con != null) {
+                try { con.close(); } catch (Exception ignored) {}
+            }
         }
         return false;
     }

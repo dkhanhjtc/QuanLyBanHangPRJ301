@@ -143,3 +143,4 @@ public class SupplierServlet extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/suppliers");
     }
 }
+

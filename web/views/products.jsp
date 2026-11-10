@@ -419,7 +419,12 @@
   }
 
   function closeModal(id) {
-    document.getElementById(id).style.display = 'none';
+    const m = document.getElementById(id);
+    if (m) {
+      m.style.display = 'none';
+      m.classList.remove('show');
+    }
+    document.body.style.overflow = '';
   }
 
   function filterProductTable(query) {

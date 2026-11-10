@@ -531,7 +531,11 @@
   }
   function closeModal(id) {
     const m = document.getElementById(id);
-    if (m) m.style.display = 'none';
+    if (m) {
+      m.style.display = 'none';
+      m.classList.remove('show');
+    }
+    document.body.style.overflow = '';
   }
 </script>
 

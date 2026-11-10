@@ -269,7 +269,7 @@
   }
 
   function closeNewInboundModal() {
-    document.getElementById('newInboundModal').style.display = 'none';
+    closeModal('newInboundModal');
   }
 
   function onProductSelectChange(sel) {
@@ -294,7 +294,7 @@
     document.getElementById('rejectTicketModal').style.display = 'flex';
   }
   function closeRejectModal() {
-    document.getElementById('rejectTicketModal').style.display = 'none';
+    closeModal('rejectTicketModal');
   }
 </script>
 

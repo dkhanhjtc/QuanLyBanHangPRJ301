@@ -240,7 +240,12 @@
   }
 
   function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const m = document.getElementById(modalId);
+    if (m) {
+      m.style.display = 'none';
+      m.classList.remove('show');
+    }
+    document.body.style.overflow = '';
   }
 </script>
 

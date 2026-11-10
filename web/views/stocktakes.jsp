@@ -665,7 +665,11 @@
 
   function closeStocktakeModal(code) {
     const m = document.getElementById('modal_' + code);
-    if (m) m.style.display = 'none';
+    if (m) {
+      m.style.display = 'none';
+      m.classList.remove('show');
+    }
+    document.body.style.overflow = '';
     const url = new URL(window.location.href);
     url.searchParams.delete('code');
     url.searchParams.delete('id');

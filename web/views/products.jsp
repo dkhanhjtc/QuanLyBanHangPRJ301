@@ -204,7 +204,6 @@
 <!-- ==========================================================================
      MODAL: CHỈNH SỬA & THÊM HÀNG HÓA (CHỈ QUẢN LÝ)
      ========================================================================== -->
-<c:if test="${!isStaff}">
 <div class="modal-backdrop" id="productEditModal" style="display: none;">
   <div class="modal-window" style="max-width: 840px; width: 92%; max-height: 90vh; overflow-y: auto;">
     <div class="modal-header">
@@ -347,7 +346,6 @@
     </form>
   </div>
 </div>
-</c:if>
 
 <script>
   function openDeleteProductModal(sku, name) {

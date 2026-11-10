@@ -462,21 +462,34 @@
     <div class="modal-header">
       <div>
         <h3 class="modal-title">Đơn hàng trong ca</h3>
-        <div class="modal-sub"><c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Lê Lan Anh'}" /> · Hôm nay</div>
+        <div class="modal-sub">
+          <c:choose>
+            <c:when test="${currentShift != null}">
+              Ca: <strong>#${currentShift.shiftCode}</strong> · Người trực: <strong><c:out value="${currentShift.staffName}" /></strong>
+            </c:when>
+            <c:otherwise>
+              <c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Lê Lan Anh'}" /> · Hôm nay
+            </c:otherwise>
+          </c:choose>
+        </div>
       </div>
       <button type="button" class="modal-close" onclick="closeModal('shiftOrdersModal')">&#215;</button>
     </div>
 
     <div class="modal-body">
       <!-- Shift Summary Box -->
-      <div style="background: #eff6ff; color: #0f172a; border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 18px;">
+      <div style="background: #eff6ff; color: #0f172a; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px;">
         <div>
-          <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Đơn đã thanh toán</div>
-          <div style="font-size: 1.75rem; font-weight: 800; color: #2563eb;">${shiftOrderCount != null ? shiftOrderCount : 0} đơn</div>
+          <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Đơn trong ca</div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: #2563eb;">${shiftOrderCount != null ? shiftOrderCount : 0} đơn</div>
         </div>
         <div>
-          <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Trạng thái kho</div>
-          <div style="font-size: 1.25rem; font-weight: 700; color: #16a34a;">Đã đồng bộ</div>
+          <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Doanh số ca</div>
+          <div style="font-size: 1.3rem; font-weight: 800; color: #16a34a;"><fmt:formatNumber value="${currentShift != null ? currentShift.totalSales : 0}" pattern="#,###"/> đ</div>
+        </div>
+        <div>
+          <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Tiền đầu ca</div>
+          <div style="font-size: 1.15rem; font-weight: 700; color: #475569;"><fmt:formatNumber value="${currentShift != null ? currentShift.openingCash : 0}" pattern="#,###"/> đ</div>
         </div>
       </div>
 
@@ -487,8 +500,14 @@
             <c:forEach items="${shiftOrders}" var="so">
               <div style="border: 1px solid #e2e8f0; background: #ffffff; border-radius: 10px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                  <div style="font-size: 0.95rem; font-weight: 700; color: #2563eb;">#${so.code}</div>
-                  <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${so.formattedTime} · ${so.paymentMethod}</div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 0.95rem; font-weight: 700; color: #2563eb;">#${so.code}</span>
+                    <span class="badge badge-gray" style="font-size: 0.72rem; padding: 2px 8px;">${so.paymentMethod}</span>
+                  </div>
+                  <div style="font-size: 0.78rem; color: #475569; margin-top: 4px;">
+                    <span>Thời gian: ${so.formattedTime}</span> · 
+                    <span>Người thực hiện: <strong style="color: #0f172a;">${not empty so.staffName ? so.staffName : (currentShift != null ? currentShift.staffName : sessionScope.user.fullName)}</strong></span>
+                  </div>
                 </div>
                 <div style="text-align: right;">
                   <div style="font-size: 1rem; font-weight: 700; color: #0f172a;"><fmt:formatNumber value="${so.totalAmount}" pattern="#,###"/> đ</div>
@@ -506,7 +525,7 @@
       </div>
 
       <div style="font-size: 0.75rem; color: #94a3b8; text-align: center; margin-top: 16px;">
-        Chỉ hiển thị đơn thuộc ca của bạn. Doanh thu được ghi nhận khi thanh toán thành công.
+        Chỉ hiển thị đơn thuộc ca làm việc hiện tại của bạn. Doanh số ca được cập nhật tự động khi thanh toán.
       </div>
     </div>
 

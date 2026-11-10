@@ -479,6 +479,14 @@ function renderCart() {
 
 // Process Checkout
 function processCheckout() {
+  if (!window.HAS_ACTIVE_SHIFT) {
+    alert('\u26A0\uFE0F B\u1EA1n ch\u01B0a v\u00E0o ca l\u00E0m vi\u1EC7c! Vui l\u00F2ng nh\u1EA5n "B\u1EAFt \u0111\u1EA7u ca l\u00E0m vi\u1EC7c" \u0111\u1EC3 m\u1EDF ca tr\u01B0\u1EDBc khi thanh to\u00E1n.');
+    if (typeof openStartShiftModal === 'function') {
+      openStartShiftModal();
+    }
+    return;
+  }
+
   const cart = getActiveCart();
   if (cart.length === 0) {
     alert('Gi\u1ECF h\u00E0ng \u0111ang tr\u1ED1ng!');
@@ -507,33 +515,14 @@ function processCheckout() {
   .then(res => res.json())
   .then(data => {
     if (data.success) {
-      // Deduct stock from local catalogData so UI is instantaneously synchronized
-      cart.forEach(item => {
-        const p = catalogData.find(x => x.sku === item.sku);
-        if (p) p.stock = Math.max(0, p.stock - item.quantity);
-      });
-
       alert('\u2705 Thanh to\u00E1n th\u00E0nh c\u00F4ng!\nM\u00E3 \u0111\u01A1n h\u00E0ng: #' + data.orderCode + '\nT\u1ED5ng ti\u1EC1n: ' + formatVND(data.totalAmount));
-
-      // Clear active cart
-      cart.length = 0;
-
-      // If more than 1 tab, close current finished tab
-      if (orderTabs.length > 1) {
-        closeOrderTab(activeTabId);
-      } else {
-        renderOrderTabs();
-        renderCart();
-      }
-
-      // Re-trigger search to update displayed stock
-      const searchInput = document.getElementById('posSearchInput');
-      if (searchInput && searchInput.value) {
-        searchProducts(searchInput.value);
-      }
+      window.location.reload();
     } else {
       alert('\u274C L\u1ED7i thanh to\u00E1n: ' + (data.message || 'Kh\u00F4ng th\u1EC3 ho\u00E0n t\u1EA5t \u0111\u01A1n h\u00E0ng'));
-      renderCart();
+      if (btn) {
+        btn.disabled = false;
+        renderCart();
+      }
     }
   })
   .catch(err => {

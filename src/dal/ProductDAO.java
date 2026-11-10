@@ -17,9 +17,11 @@ public class ProductDAO extends DBContext {
         "       p.cost_price AS costPrice, p.stock_qty AS stockQuantity, p.min_stock_alert AS minStock, " +
         "       p.unit, (ISNULL(p.size, 'M') + ' - ' + ISNULL(p.color, N'Tiêu chuẩn')) AS spec, " +
         "       p.size, p.color, " +
-        "       p.image_url AS imageUrl, p.status " +
+        "       p.image_url AS imageUrl, p.status, " +
+        "       p.supplier_id AS supplierId, ISNULL(s.supplier_name, N'-') AS supplierName " +
         "FROM Products p " +
-        "LEFT JOIN Categories c ON p.category_id = c.category_id ";
+        "LEFT JOIN Categories c ON p.category_id = c.category_id " +
+        "LEFT JOIN Suppliers s ON p.supplier_id = s.supplier_id ";
 
     /**
      * Lấy toàn bộ danh sách sản phẩm trong kho hàng
@@ -122,8 +124,8 @@ public class ProductDAO extends DBContext {
      * @return true nếu thêm thành công, false nếu thất bại
      */
     public boolean addProduct(Product p) {
-        String sql = "INSERT INTO Products (product_code, product_name, category_id, retail_price, cost_price, stock_qty, min_stock_alert, unit, size, color, image_url, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')";
+        String sql = "INSERT INTO Products (product_code, product_name, category_id, supplier_id, retail_price, cost_price, stock_qty, min_stock_alert, unit, size, color, image_url, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')";
 
         int catId = 1;
         if (p.getCategory() != null) {
@@ -145,14 +147,19 @@ public class ProductDAO extends DBContext {
             ps.setString(1, p.getSku() != null ? p.getSku() : ("SP" + System.currentTimeMillis() % 1000));
             ps.setString(2, p.getName());
             ps.setInt(3, catId);
-            ps.setDouble(4, p.getPrice());
-            ps.setDouble(5, p.getCostPrice());
-            ps.setInt(6, p.getStockQuantity());
-            ps.setInt(7, p.getMinStock());
-            ps.setString(8, p.getUnit() != null ? p.getUnit() : "Cái");
-            ps.setString(9, size);
-            ps.setString(10, color);
-            ps.setString(11, img);
+            if (p.getSupplierId() != null && p.getSupplierId() > 0) {
+                ps.setInt(4, p.getSupplierId());
+            } else {
+                ps.setNull(4, java.sql.Types.INTEGER);
+            }
+            ps.setDouble(5, p.getPrice());
+            ps.setDouble(6, p.getCostPrice());
+            ps.setInt(7, p.getStockQuantity());
+            ps.setInt(8, p.getMinStock());
+            ps.setString(9, p.getUnit() != null ? p.getUnit() : "Cái");
+            ps.setString(10, size);
+            ps.setString(11, color);
+            ps.setString(12, img);
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -257,7 +264,7 @@ public class ProductDAO extends DBContext {
      * @return true nếu cập nhật thành công, false nếu thất bại
      */
     public boolean updateProduct(Product p) {
-        String sql = "UPDATE Products SET product_name = ?, category_id = ?, size = ?, color = ?, " +
+        String sql = "UPDATE Products SET product_name = ?, category_id = ?, supplier_id = ?, size = ?, color = ?, " +
                      "retail_price = ?, cost_price = ?, stock_qty = ?, min_stock_alert = ?, unit = ?, " +
                      "image_url = CASE WHEN ? IS NOT NULL AND ? <> '' THEN ? ELSE image_url END " +
                      "WHERE product_code = ? OR CAST(product_id AS VARCHAR(50)) = ?";
@@ -280,18 +287,23 @@ public class ProductDAO extends DBContext {
 
             ps.setString(1, p.getName());
             ps.setInt(2, catId);
-            ps.setString(3, size);
-            ps.setString(4, color);
-            ps.setDouble(5, p.getPrice());
-            ps.setDouble(6, p.getCostPrice());
-            ps.setInt(7, p.getStockQuantity());
-            ps.setInt(8, p.getMinStock());
-            ps.setString(9, p.getUnit() != null ? p.getUnit() : "Cái");
-            ps.setString(10, p.getImageUrl());
+            if (p.getSupplierId() != null && p.getSupplierId() > 0) {
+                ps.setInt(3, p.getSupplierId());
+            } else {
+                ps.setNull(3, java.sql.Types.INTEGER);
+            }
+            ps.setString(4, size);
+            ps.setString(5, color);
+            ps.setDouble(6, p.getPrice());
+            ps.setDouble(7, p.getCostPrice());
+            ps.setInt(8, p.getStockQuantity());
+            ps.setInt(9, p.getMinStock());
+            ps.setString(10, p.getUnit() != null ? p.getUnit() : "Cái");
             ps.setString(11, p.getImageUrl());
             ps.setString(12, p.getImageUrl());
-            ps.setString(13, p.getSku() != null ? p.getSku() : p.getId());
-            ps.setString(14, p.getId() != null ? p.getId() : p.getSku());
+            ps.setString(13, p.getImageUrl());
+            ps.setString(14, p.getSku() != null ? p.getSku() : p.getId());
+            ps.setString(15, p.getId() != null ? p.getId() : p.getSku());
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -464,7 +476,16 @@ public class ProductDAO extends DBContext {
         String imageUrl = rs.getString("imageUrl");
         String status = rs.getString("status");
 
-        return new Product(id, sku, name, category, price, costPrice, stockQuantity, minStock, unit, spec, size, color, imageUrl, status);
+        Product prod = new Product(id, sku, name, category, price, costPrice, stockQuantity, minStock, unit, spec, size, color, imageUrl, status);
+        try {
+            int sid = rs.getInt("supplierId");
+            if (!rs.wasNull()) prod.setSupplierId(sid);
+        } catch (Exception ignored) {}
+        try {
+            prod.setSupplierName(rs.getString("supplierName"));
+        } catch (Exception ignored) {}
+
+        return prod;
     }
 
     private PurchaseOrder mapPurchaseOrder(ResultSet rs) throws Exception {

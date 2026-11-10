@@ -162,6 +162,7 @@
                                     data-stock="${p.stockQuantity}"
                                     data-minstock="${p.minStock}"
                                     data-image="${p.imageUrl}"
+                                    data-supplier="${p.supplierId}"
                                     onclick="handleEditProductClick(this)">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                               <span>Sửa</span>
@@ -250,10 +251,10 @@
         <!-- HÀNG RIÊNG (DEDICATED ROW): Nhà cung cấp / Xưởng may -->
         <div class="form-group" style="margin-bottom: 14px;">
           <label class="form-label" for="modalProductSupplier">Nhà cung cấp / Xưởng may liên kết</label>
-          <select id="modalProductSupplier" name="supplierName" class="form-select" style="width: 100%;">
+          <select id="modalProductSupplier" name="supplierId" class="form-select" style="width: 100%;">
             <option value="">-- Chọn Nhà cung cấp / Xưởng may liên kết --</option>
             <c:forEach items="${suppliers}" var="sup">
-              <option value="${sup.supplierName}">${sup.supplierName} (${sup.supplierCode}) · SĐT: ${sup.contactPhone}</option>
+              <option value="${sup.supplierId}">${sup.supplierName} (${sup.supplierCode}) · SĐT: ${sup.contactPhone}</option>
             </c:forEach>
           </select>
         </div>
@@ -367,6 +368,7 @@
     document.getElementById('modalProductStock').value = '20';
     document.getElementById('modalProductMinStock').value = '5';
     document.getElementById('modalProductImageUrl').value = '';
+    document.getElementById('modalProductSupplier').value = '';
     document.getElementById('productEditModal').style.display = 'flex';
   }
 
@@ -381,10 +383,11 @@
     const stock = btn.getAttribute('data-stock') || '0';
     const minStock = btn.getAttribute('data-minstock') || '5';
     const img = btn.getAttribute('data-image') || '';
-    openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img);
+    const supplier = btn.getAttribute('data-supplier') || '';
+    openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img, supplier);
   }
 
-  function openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img) {
+  function openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img, supplier) {
     document.getElementById('modalProductTitle').textContent = 'Chỉnh sửa: ' + name;
     document.getElementById('modalProductSubtitle').textContent = 'Mã SKU: ' + sku;
     document.getElementById('modalProductSku').value = sku;
@@ -392,6 +395,7 @@
     document.getElementById('modalProductName').value = name;
     document.getElementById('modalProductCategory').value = category;
     document.getElementById('modalProductUnit').value = unit || 'Cái';
+    document.getElementById('modalProductSupplier').value = supplier || '';
     document.getElementById('modalProductCost').value = cost;
     document.getElementById('modalProductPrice').value = price;
     document.getElementById('modalProductStock').value = stock;

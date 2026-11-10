@@ -247,6 +247,24 @@ public class ProductServlet extends HttpServlet {
             Product existing = productDAO.getProductById(sku);
             Product p = new Product(sku, sku, name, cat, price, costPrice, stock, minStock, unit, spec, size, color, imageUrl, "ACTIVE");
 
+            String supplierIdStr = request.getParameter("supplierId");
+            String supplierName = request.getParameter("supplierName");
+            Integer supplierId = null;
+            try {
+                if (supplierIdStr != null && !supplierIdStr.trim().isEmpty()) {
+                    supplierId = Integer.parseInt(supplierIdStr);
+                }
+            } catch (Exception ignored) {}
+            if (supplierId == null && supplierName != null && !supplierName.trim().isEmpty()) {
+                for (Supplier sup : supplierDAO.getAllSuppliers()) {
+                    if (supplierName.trim().equalsIgnoreCase(sup.getSupplierName().trim())) {
+                        supplierId = sup.getSupplierId();
+                        break;
+                    }
+                }
+            }
+            p.setSupplierId(supplierId);
+
             if (existing != null) {
                 p.setId(existing.getId());
                 productDAO.updateProduct(p);

@@ -134,7 +134,7 @@
                       <td style="text-align: right; font-weight: 700; color: #0f172a;">
                         <fmt:formatNumber value="${p.price}" pattern="#,###"/> đ
                       </td>
-                      <td style="text-align: center; font-weight: 700; ${p.stockQuantity <= p.minStock ? 'color: #dc2626;' : 'color: #059669;'}">
+                      <td style="text-align: center; font-weight: 700; color: ${p.stockQuantity <= p.minStock ? '#dc2626' : '#059669'};">
                         ${p.stockQuantity}
                       </td>
                       <td style="text-align: center; color: #64748b;">${p.minStock}</td>

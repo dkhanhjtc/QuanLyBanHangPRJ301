@@ -514,7 +514,7 @@
                                 <c:otherwise><span class="badge badge-gray">0</span></c:otherwise>
                               </c:choose>
                             </td>
-                            <td style="font-weight: 600; text-align: right; ${item.variance < 0 ? 'color: #ef4444;' : (item.variance > 0 ? 'color: #2563eb;' : 'color: #64748b;')}">
+                            <td style="font-weight: 600; text-align: right; color: ${item.variance < 0 ? '#ef4444' : (item.variance > 0 ? '#2563eb' : '#64748b')};">
                               <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> đ
                             </td>
                             <td><div style="font-size: 0.825rem; color: #475569;">${not empty item.note ? item.note : 'Khớp số lượng hệ thống.'}</div></td>
@@ -590,7 +590,7 @@
                                 <c:otherwise><span class="badge badge-gray" style="font-size: 0.8rem; padding: 4px 8px;">0</span></c:otherwise>
                               </c:choose>
                             </td>
-                            <td style="font-weight: 600; text-align: right; ${item.variance < 0 ? 'color: #ef4444;' : (item.variance > 0 ? 'color: #2563eb;' : 'color: #64748b;')}">
+                            <td style="font-weight: 600; text-align: right; color: ${item.variance < 0 ? '#ef4444' : (item.variance > 0 ? '#2563eb' : '#64748b')};">
                               <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> đ
                             </td>
                             <td>

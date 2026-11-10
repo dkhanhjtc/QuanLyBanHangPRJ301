@@ -130,7 +130,7 @@
                           </c:otherwise>
                         </c:choose>
                       </td>
-                      <td style="font-weight: 600; ${item.variance < 0 ? 'color: #ef4444;' : (item.variance > 0 ? 'color: #2563eb;' : 'color: #64748b;')}">
+                      <td style="font-weight: 600; color: ${item.variance < 0 ? '#ef4444' : (item.variance > 0 ? '#2563eb' : '#64748b')};">
                         <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> đ
                       </td>
                       <td>

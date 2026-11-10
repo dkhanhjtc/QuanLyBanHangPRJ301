@@ -211,6 +211,30 @@ public class ProductDAO extends DBContext {
     }
 
     /**
+     * Tạo phiếu nhập hàng mới từ nhà cung cấp / xưởng may (trạng thái PENDING chờ quản lý duyệt)
+     */
+    public boolean createPurchaseOrder(String code, String supplierName, String productId, int quantity, double costPrice, int createdBy) {
+        String sql = "INSERT INTO PurchaseOrders (code, supplierName, productId, totalQuantity, totalCost, status, createdBy, createdAt) " +
+                     "VALUES (?, ?, ?, ?, ?, 'PENDING', ?, GETDATE())";
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, code);
+            ps.setString(2, supplierName);
+            ps.setString(3, productId);
+            ps.setInt(4, quantity);
+            ps.setDouble(5, costPrice * quantity);
+            ps.setInt(6, createdBy > 0 ? createdBy : 2);
+
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
      * Lấy danh sách các phiếu nhập hàng chờ quản lý duyệt
      * @return List<PurchaseOrder> danh sách phiếu nhập
      */

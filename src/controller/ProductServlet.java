@@ -58,6 +58,7 @@ public class ProductServlet extends HttpServlet {
         Integer currentUserId = (currentUser != null) ? currentUser.getId() : null;
         boolean isStaff = currentUser != null && "STAFF".equalsIgnoreCase(currentUser.getRole());
         request.setAttribute("isStaff", isStaff);
+        request.setAttribute("userRole", currentUser != null && currentUser.getRole() != null ? currentUser.getRole().toLowerCase() : "manager");
         request.setAttribute("notifications", notificationDAO.getNotificationsForUser(currentUserId, 5));
         request.setAttribute("unreadNotificationCount", notificationDAO.getUnreadCount(currentUserId));
 

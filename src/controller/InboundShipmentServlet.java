@@ -3,10 +3,12 @@ package controller;
 import dal.ActivityLogDAO;
 import dal.ProductDAO;
 import dal.StockTransactionDAO;
+import dal.SupplierDAO;
 import dal.SystemNotificationDAO;
 import model.ActivityLog;
 import model.Product;
 import model.PurchaseOrder;
+import model.Supplier;
 import model.User;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -24,6 +26,7 @@ public class InboundShipmentServlet extends HttpServlet {
     private final ActivityLogDAO logDAO = new ActivityLogDAO();
     private final StockTransactionDAO stockTransactionDAO = new StockTransactionDAO();
     private final SystemNotificationDAO notificationDAO = new SystemNotificationDAO();
+    private final SupplierDAO supplierDAO = new SupplierDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -50,7 +53,11 @@ public class InboundShipmentServlet extends HttpServlet {
         request.setAttribute("pendingUnits", pendingQty);
         request.setAttribute("pendingTotalCost", pendingCost);
 
-        // 2. Tải danh sách cảnh báo chạm đáy & thông báo
+        // 2. Tải danh sách sản phẩm & nhà cung cấp phục vụ lập phiếu nhập hàng mới
+        request.setAttribute("products", productDAO.getAllProducts());
+        request.setAttribute("suppliers", supplierDAO.getAllSuppliers());
+
+        // 3. Tải danh sách cảnh báo chạm đáy & thông báo
         List<Product> lowStockProducts = productDAO.getLowStockProducts();
         request.setAttribute("lowStockProducts", lowStockProducts);
         request.setAttribute("lowStockCount", lowStockProducts.size());
@@ -146,6 +153,45 @@ public class InboundShipmentServlet extends HttpServlet {
             return;
         }
 
+        // 3. Tạo phiếu nhập hàng mới (Tạo lô hàng về từ Nhà cung cấp / Xưởng may)
+        if ("create_inflow".equalsIgnoreCase(action)) {
+            String poCode = request.getParameter("poCode");
+            if (poCode == null || poCode.trim().isEmpty()) {
+                poCode = "PN-" + (System.currentTimeMillis() % 100000);
+            }
+            String supplierName = request.getParameter("supplierName");
+            String productId = request.getParameter("productId");
+            String qtyStr = request.getParameter("quantity");
+            String costPriceStr = request.getParameter("costPrice");
+
+            int qty = 1;
+            double costPrice = 0;
+            try { qty = Integer.parseInt(qtyStr); } catch (Exception ignored) {}
+            try { costPrice = Double.parseDouble(costPriceStr); } catch (Exception ignored) {}
+
+            if (supplierName != null && productId != null && qty > 0) {
+                Product prod = productDAO.getProductById(productId);
+                String prodName = prod != null ? prod.getName() : productId;
+                if (costPrice <= 0 && prod != null) {
+                    costPrice = prod.getCostPrice();
+                }
+
+                productDAO.createPurchaseOrder(poCode, supplierName, productId, qty, costPrice, userId);
+
+                notificationDAO.createNotification(null, "Phiếu nhập hàng mới: #" + poCode, 
+                    "Phiếu nhập +" + qty + " " + prodName + " từ " + supplierName + " vừa được tạo.", 
+                    "PURCHASE_CREATED", "inbound-shipments");
+
+                logDAO.log(new ActivityLog(0, userId, userName, "Tạo phiếu nhập hàng", 
+                    "Tạo phiếu " + poCode + " nhập +" + qty + " " + prodName + " từ " + supplierName, 
+                    request.getRemoteAddr(), userRole, poCode, "Thành công", null));
+            }
+
+            response.sendRedirect(request.getContextPath() + "/inbound-shipments");
+            return;
+        }
+
         response.sendRedirect(request.getContextPath() + "/inbound-shipments");
     }
 }
+

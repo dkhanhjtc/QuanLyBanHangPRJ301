@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
 <c:set var="activeMenu" value="${not empty param.activeMenu ? param.activeMenu : (not empty activeMenu ? activeMenu : 'dashboard')}" />
-<c:set var="userRole" value="${empty sessionScope.userRole ? (empty sessionScope.user.role ? (not empty param.currentRole ? param.currentRole : (empty currentRole ? 'manager' : currentRole)) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase()}" />
+<c:set var="userRole" value="${not empty requestScope.userRole ? requestScope.userRole : (empty sessionScope.userRole ? (empty sessionScope.user.role ? (not empty param.currentRole ? param.currentRole : (empty currentRole ? 'manager' : currentRole)) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase())}" />
 
 <aside class="sidebar">
   <!-- Brand Header -->

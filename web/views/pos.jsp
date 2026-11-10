@@ -535,8 +535,8 @@
   }
 </script>
 
-<!-- POS Interactive Script -->
-<script src="${pageContext.request.contextPath}/assets/js/pos.js?v=2" charset="UTF-8"></script>
+<!-- POS Interactive Script (Cache Busted) -->
+<script src="${pageContext.request.contextPath}/assets/js/pos.js?v=20261110_fix9" charset="UTF-8"></script>
 <jsp:include page="/common/footer.jsp" />
 </body>
 </html>

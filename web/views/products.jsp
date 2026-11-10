@@ -2,8 +2,8 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-<c:set var="userRole" value="${empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase()}" />
-<c:set var="isStaff" value="${userRole eq 'staff'}" />
+<c:set var="userRole" value="${not empty requestScope.userRole ? requestScope.userRole : (empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase())}" />
+<c:set var="isStaff" value="${not empty requestScope.isStaff ? requestScope.isStaff : (userRole eq 'staff' || sessionScope.user.role eq 'STAFF')}" />
 <c:set var="activeMenu" value="products" />
 <c:set var="breadcrumbCurrent" value="Hàng hóa" />
 
@@ -150,8 +150,18 @@
                       </td>
                       <c:if test="${!isStaff}">
                         <td style="text-align: right;">
-                          <button type="button" class="btn btn-outline" style="padding: 5px 12px; font-size: 0.8rem;" 
-                                  onclick="openEditModal('${p.sku}', '${p.name}', '${p.category}', '${p.unit}', '${p.spec}', ${p.costPrice}, ${p.price}, ${p.stockQuantity}, ${p.minStock}, '${p.imageUrl}')">
+                          <button type="button" class="btn btn-outline edit-prod-btn" style="padding: 5px 12px; font-size: 0.8rem;" 
+                                  data-sku="${p.sku}"
+                                  data-name="<c:out value='${p.name}'/>"
+                                  data-category="<c:out value='${p.category}'/>"
+                                  data-unit="<c:out value='${p.unit}'/>"
+                                  data-spec="<c:out value='${p.spec}'/>"
+                                  data-cost="${p.costPrice}"
+                                  data-price="${p.price}"
+                                  data-stock="${p.stockQuantity}"
+                                  data-minstock="${p.minStock}"
+                                  data-image="<c:out value='${p.imageUrl}'/>"
+                                  onclick="handleEditProductClick(this)">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             <span>Sửa</span>
                           </button>
@@ -186,18 +196,18 @@
      ========================================================================== -->
 <c:if test="${!isStaff}">
 <div class="modal-backdrop" id="productEditModal" style="display: none;">
-  <div class="modal-window" style="max-width: 780px; width: 92%; max-height: 90vh; overflow-y: auto;">
+  <div class="modal-window" style="max-width: 840px; width: 92%; max-height: 90vh; overflow-y: auto;">
     <div class="modal-header">
       <div>
         <h3 class="modal-title" id="modalProductTitle">Thông tin hàng hóa</h3>
-        <div class="modal-sub" id="modalProductSubtitle">Cập nhật thông tin trong danh mục</div>
+        <div class="modal-sub" id="modalProductSubtitle">Cập nhật thông tin trong danh mục kho hàng</div>
       </div>
       <button type="button" class="modal-close" onclick="closeModal('productEditModal')">&times;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/products" method="POST">
       <input type="hidden" name="action" value="save">
-      <div class="modal-body" style="padding: 20px 24px;">
+      <div class="modal-body" style="padding: 22px 26px;">
         <!-- Hàng 1: Mã SKU & Tên sản phẩm -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
           <div class="form-group" style="margin-bottom: 0;">
@@ -226,6 +236,17 @@
             <label class="form-label" for="modalProductUnit">Đơn vị tính</label>
             <input type="text" id="modalProductUnit" name="unit" class="form-input" value="Cái" placeholder="Cái, Bộ, Chiếc">
           </div>
+        </div>
+
+        <!-- HÀNG RIÊNG (DEDICATED ROW): Nhà cung cấp / Xưởng may -->
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="modalProductSupplier">Nhà cung cấp / Xưởng may liên kết</label>
+          <select id="modalProductSupplier" name="supplierName" class="form-select" style="width: 100%;">
+            <option value="">-- Chọn Nhà cung cấp / Xưởng may liên kết --</option>
+            <c:forEach items="${suppliers}" var="sup">
+              <option value="${sup.supplierName}">${sup.supplierName} (${sup.supplierCode}) · SĐT: ${sup.contactPhone}</option>
+            </c:forEach>
+          </select>
         </div>
 
         <!-- Hàng 3: Kích cỡ (Size) và Màu sắc (Color) -->
@@ -309,6 +330,20 @@
     document.getElementById('modalProductMinStock').value = '5';
     document.getElementById('modalProductImageUrl').value = '';
     document.getElementById('productEditModal').style.display = 'flex';
+  }
+
+  function handleEditProductClick(btn) {
+    const sku = btn.getAttribute('data-sku') || '';
+    const name = btn.getAttribute('data-name') || '';
+    const category = btn.getAttribute('data-category') || '';
+    const unit = btn.getAttribute('data-unit') || 'Cái';
+    const spec = btn.getAttribute('data-spec') || '';
+    const cost = btn.getAttribute('data-cost') || '0';
+    const price = btn.getAttribute('data-price') || '0';
+    const stock = btn.getAttribute('data-stock') || '0';
+    const minStock = btn.getAttribute('data-minstock') || '5';
+    const img = btn.getAttribute('data-image') || '';
+    openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img);
   }
 
   function openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img) {

@@ -39,6 +39,10 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
             <span>Đồng bộ</span>
           </a>
+          <button type="button" class="btn btn-primary" onclick="openNewInboundModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>+ Tạo phiếu nhập hàng</span>
+          </button>
         </div>
       </div>
 
@@ -135,6 +139,95 @@
   </div>
 </div>
 
+<!-- ==========================================================================
+     MODAL: TẠO PHIẾU NHẬP HÀNG VỀ KHO (TỪ NHÀ CUNG CẤP / XƯỞNG MAY)
+     ========================================================================== -->
+<div class="modal-backdrop" id="newInboundModal" style="display: none;">
+  <div class="modal-window" style="max-width: 780px; width: 92%; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">Tạo phiếu nhập hàng về kho</h3>
+        <div class="modal-sub">Ghi nhận lô hàng mới từ đối tác xưởng may hoặc nhà cung cấp</div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeNewInboundModal()">&times;</button>
+    </div>
+
+    <form action="${pageContext.request.contextPath}/inbound-shipments" method="POST">
+      <input type="hidden" name="action" value="create_inflow">
+
+      <div class="modal-body" style="padding: 20px 24px;">
+        <!-- Hàng 1: Mã phiếu nhập & Ngày tạo -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="inboundPoCode">Mã phiếu nhập (Tự động) *</label>
+            <input type="text" id="inboundPoCode" name="poCode" class="form-input" style="font-weight: 700; color: #2563eb;" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Người lập phiếu</label>
+            <input type="text" class="form-input" value="<c:out value='${sessionScope.user != null ? sessionScope.user.fullName : \"Nguyễn Minh Hà\"}' />" readonly style="background: #f8fafc; color: #475569;">
+          </div>
+        </div>
+
+        <!-- HÀNG RIÊNG (DEDICATED ROW): Nhà cung cấp / Xưởng may -->
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="inboundSupplierSelect">Nhà cung cấp / Xưởng may liên kết *</label>
+          <select id="inboundSupplierSelect" name="supplierName" class="form-select" style="width: 100%; font-weight: 500;" required>
+            <option value="">-- Chọn Nhà cung cấp hoặc Xưởng may --</option>
+            <c:forEach items="${suppliers}" var="sup">
+              <option value="${sup.supplierName}">${sup.supplierName} (${sup.supplierCode}) · SĐT: ${sup.contactPhone}</option>
+            </c:forEach>
+          </select>
+        </div>
+
+        <!-- Hàng 3: Chọn sản phẩm nhập kho -->
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="inboundProductSelect">Sản phẩm cần nhập về *</label>
+          <select id="inboundProductSelect" name="productId" class="form-select" style="width: 100%;" onchange="onProductSelectChange(this)" required>
+            <option value="">-- Chọn mặt hàng thời trang trong danh mục --</option>
+            <c:forEach items="${products}" var="p">
+              <option value="${p.sku}" data-cost="${p.costPrice}" data-name="${p.name}" data-stock="${p.stockQuantity}">
+                ${p.name} (${p.sku}) · Size/Màu: ${p.spec} · Tồn hiện tại: ${p.stockQuantity}
+              </option>
+            </c:forEach>
+          </select>
+        </div>
+
+        <!-- Hàng 4: Số lượng nhập & Giá vốn nhập đề nghị -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="inboundQty">Số lượng nhập (đơn vị: Cái) *</label>
+            <input type="number" id="inboundQty" name="quantity" class="form-input" value="30" min="1" oninput="calculateTotalInflow()" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="inboundCost">Đơn giá nhập (VNĐ) *</label>
+            <input type="number" id="inboundCost" name="costPrice" class="form-input" placeholder="200000" min="0" step="1000" oninput="calculateTotalInflow()" required>
+          </div>
+        </div>
+
+        <!-- Tóm tắt tổng tiền nhập dự kiến -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 0.85rem; color: #1e40af; font-weight: 600;">Tổng giá trị lô hàng nhập dự kiến:</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #1d4ed8;" id="inboundTotalCostPreview">0 đ</div>
+        </div>
+
+        <!-- Hàng 5: Ghi chú nhập hàng -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="inboundNote">Ghi chú phiếu nhập</label>
+          <input type="text" id="inboundNote" name="note" class="form-input" placeholder="Ví dụ: Nhập bổ sung sào trưng bày, hàng giao đợt 1...">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeNewInboundModal()">Hủy</button>
+        <button type="submit" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Lập phiếu nhập</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- MODAL: TỪ CHỐI PHIẾU NHẬP HÀNG -->
 <div class="modal-backdrop" id="rejectTicketModal" style="display: none;">
   <div class="modal-window">
@@ -167,6 +260,33 @@
 </div>
 
 <script>
+  function openNewInboundModal() {
+    const code = 'PN-' + Math.floor(1000 + Math.random() * 9000);
+    document.getElementById('inboundPoCode').value = code;
+    document.getElementById('inboundQty').value = '30';
+    calculateTotalInflow();
+    document.getElementById('newInboundModal').style.display = 'flex';
+  }
+
+  function closeNewInboundModal() {
+    document.getElementById('newInboundModal').style.display = 'none';
+  }
+
+  function onProductSelectChange(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.getAttribute('data-cost')) {
+      document.getElementById('inboundCost').value = opt.getAttribute('data-cost');
+    }
+    calculateTotalInflow();
+  }
+
+  function calculateTotalInflow() {
+    const qty = parseInt(document.getElementById('inboundQty').value || '0', 10);
+    const cost = parseFloat(document.getElementById('inboundCost').value || '0');
+    const total = qty * cost;
+    document.getElementById('inboundTotalCostPreview').textContent = new Intl.NumberFormat('vi-VN').format(total) + ' đ';
+  }
+
   function openRejectModal(id, code) {
     document.getElementById('rejectPoIdInput').value = id;
     document.getElementById('rejectPoCodeInput').value = code;
@@ -181,3 +301,4 @@
 <jsp:include page="/common/footer.jsp" />
 </body>
 </html>
+

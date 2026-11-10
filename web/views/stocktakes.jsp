@@ -2,8 +2,8 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-<c:set var="userRole" value="${empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase()}" />
-<c:set var="isStaff" value="${userRole eq 'staff'}" />
+<c:set var="userRole" value="${not empty requestScope.userRole ? requestScope.userRole : (empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase())}" />
+<c:set var="isStaff" value="${not empty requestScope.isStaff ? requestScope.isStaff : (userRole eq 'staff' || sessionScope.user.role eq 'STAFF')}" />
 <c:set var="activeMenu" value="stocktakes" />
 <c:set var="breadcrumbCurrent" value="${isStaff ? 'Kiểm kê của tôi' : 'Kiểm kê định kỳ'}" />
 
@@ -685,9 +685,17 @@
   document.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
+    const id = params.get('id');
     if (code) {
       const modal = document.getElementById('modal_' + code);
       if (modal) modal.style.display = 'flex';
+    } else if (id) {
+      <c:forEach items="${stocktakes}" var="st">
+        if ('${st.id}' === id) {
+          const modal = document.getElementById('modal_${st.code}');
+          if (modal) modal.style.display = 'flex';
+        }
+      </c:forEach>
     }
   });
 </script>

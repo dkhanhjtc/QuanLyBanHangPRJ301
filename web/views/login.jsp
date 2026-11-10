@@ -221,7 +221,7 @@
               <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
               <line x1="12" y1="18" x2="12.01" y2="18"/>
             </svg>
-            <input type="text" id="phone" name="phone" class="form-input" placeholder="Nhập số điện thoại của bạn" value="${param.phone != null ? param.phone : '090 987 6543'}" required>
+            <input type="text" id="phone" name="phone" class="form-input" placeholder="Nhập số điện thoại của bạn" value="${param.phone != null ? param.phone : '0988000002'}" required>
           </div>
         </div>
 
@@ -258,9 +258,9 @@
           Tài khoản kiểm thử nhanh (Nhấn để đăng nhập tự động)
         </div>
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <button type="button" onclick="fillCredentials('090 123 4123', '123456')" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer; border:1px solid #e2e8f0;" title="Đăng nhập tài khoản Super Admin (Mai Anh)">Super Admin</button>
-          <button type="button" onclick="fillCredentials('090 987 6543', '123456')" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer; border:1px solid #e2e8f0;" title="Đăng nhập tài khoản Quản lý (Minh Hà)">Quản lý</button>
-          <button type="button" onclick="fillCredentials('090 555 1122', '123456')" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer; border:1px solid #e2e8f0;" title="Đăng nhập tài khoản Nhân viên POS (Lan Anh)">Nhân viên</button>
+          <button type="button" onclick="fillCredentials('0988000001', '123456')" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer; border:1px solid #e2e8f0;" title="Đăng nhập tài khoản Super Admin (0988000001)">Super Admin</button>
+          <button type="button" onclick="fillCredentials('0988000002', '123456')" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer; border:1px solid #e2e8f0;" title="Đăng nhập tài khoản Quản lý (0988000002)">Quản lý</button>
+          <button type="button" onclick="fillCredentials('0988000003', '123456')" class="badge" style="background:#f1f5f9; color:#334155; padding:6px 12px; cursor:pointer; border:1px solid #e2e8f0;" title="Đăng nhập tài khoản Thu ngân (0988000003)">Thu ngân</button>
         </div>
         <script>
           function fillCredentials(phone, passcode) {

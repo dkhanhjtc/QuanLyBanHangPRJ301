@@ -2,8 +2,8 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-<c:set var="userRole" value="${empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase()}" />
-<c:set var="isStaff" value="${userRole eq 'staff'}" />
+<c:set var="userRole" value="${not empty requestScope.userRole ? requestScope.userRole : (empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase())}" />
+<c:set var="isStaff" value="${not empty requestScope.isStaff ? requestScope.isStaff : (userRole eq 'staff' || sessionScope.user.role eq 'STAFF')}" />
 <c:set var="activeMenu" value="stocktakes" />
 <c:set var="breadcrumbCurrent" value="${isStaff ? 'Kiểm kê của tôi' : 'Kiểm kê định kỳ'}" />
 
@@ -129,8 +129,9 @@
               <div class="form-group">
                 <label class="form-label" for="staffSelect">Nhân viên thực hiện *</label>
                 <select id="staffSelect" name="assignedStaffId" class="form-select" required>
-                  <option value="3">Lê Lan Anh · Thu ngân</option>
-                  <option value="4">Trần Quốc Bảo · Thu ngân</option>
+                  <option value="7">Lê Lan Anh · Thu ngân (0988000003)</option>
+                  <option value="3">Lê Lan Anh · Thu ngân (0912345678)</option>
+                  <option value="4">Trần Quốc Bảo · Thu ngân (0987654321)</option>
                 </select>
               </div>
 
@@ -349,7 +350,7 @@
             ${st.title} · Nhân viên phụ trách: <strong>${st.assignedTo}</strong>
           </div>
         </div>
-        <button type="button" class="modal-close" onclick="closeStocktakeModal('${st.code}')">&times;</button>
+        <button type="button" class="modal-close" onclick="closeStocktakeModal('${st.code}')">&#215;</button>
       </div>
 
       <div class="modal-body" style="padding: 0;">
@@ -513,7 +514,7 @@
                                 <c:otherwise><span class="badge badge-gray">0</span></c:otherwise>
                               </c:choose>
                             </td>
-                            <td style="font-weight: 600; text-align: right; ${item.variance < 0 ? 'color: #ef4444;' : (item.variance > 0 ? 'color: #2563eb;' : 'color: #64748b;')}">
+                            <td style="font-weight: 600; text-align: right; color: ${item.variance < 0 ? '#ef4444' : (item.variance > 0 ? '#2563eb' : '#64748b')};">
                               <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> đ
                             </td>
                             <td><div style="font-size: 0.825rem; color: #475569;">${not empty item.note ? item.note : 'Khớp số lượng hệ thống.'}</div></td>
@@ -589,7 +590,7 @@
                                 <c:otherwise><span class="badge badge-gray" style="font-size: 0.8rem; padding: 4px 8px;">0</span></c:otherwise>
                               </c:choose>
                             </td>
-                            <td style="font-weight: 600; text-align: right; ${item.variance < 0 ? 'color: #ef4444;' : (item.variance > 0 ? 'color: #2563eb;' : 'color: #64748b;')}">
+                            <td style="font-weight: 600; text-align: right; color: ${item.variance < 0 ? '#ef4444' : (item.variance > 0 ? '#2563eb' : '#64748b')};">
                               <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> đ
                             </td>
                             <td>
@@ -664,7 +665,11 @@
 
   function closeStocktakeModal(code) {
     const m = document.getElementById('modal_' + code);
-    if (m) m.style.display = 'none';
+    if (m) {
+      m.style.display = 'none';
+      m.classList.remove('show');
+    }
+    document.body.style.overflow = '';
     const url = new URL(window.location.href);
     url.searchParams.delete('code');
     url.searchParams.delete('id');
@@ -684,9 +689,17 @@
   document.addEventListener('DOMContentLoaded', function() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
+    const id = params.get('id');
     if (code) {
       const modal = document.getElementById('modal_' + code);
       if (modal) modal.style.display = 'flex';
+    } else if (id) {
+      <c:forEach items="${stocktakes}" var="st">
+        if ('${st.id}' === id) {
+          const modal = document.getElementById('modal_${st.code}');
+          if (modal) modal.style.display = 'flex';
+        }
+      </c:forEach>
     }
   });
 </script>

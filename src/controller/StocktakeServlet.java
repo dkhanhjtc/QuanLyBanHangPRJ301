@@ -40,26 +40,23 @@ public class StocktakeServlet extends HttpServlet {
 
         String path = request.getServletPath();
 
-        // 1. Xem màn hình chi tiết đối soát kiểm kê
+        // 1. Chuyển hướng /stocktake-detail về cùng một giao diện thống nhất /stocktakes kèm id/code trên URL
         if ("/stocktake-detail".equals(path)) {
             String code = request.getParameter("code");
             String idStr = request.getParameter("id");
-            Stocktake stocktake = null;
-
-            if (idStr != null && !idStr.isEmpty()) {
-                try {
-                    stocktake = stocktakeDAO.getStocktakeById(Integer.parseInt(idStr));
-                } catch (Exception ignored) {}
+            StringBuilder redirectUrl = new StringBuilder(request.getContextPath() + "/stocktakes?");
+            if (code != null && !code.trim().isEmpty()) {
+                redirectUrl.append("code=").append(code.trim()).append("&");
             }
-
-            if (stocktake == null) {
-                stocktake = stocktakeDAO.getStocktakeByCode(code != null ? code : "KK-101");
+            if (idStr != null && !idStr.trim().isEmpty()) {
+                redirectUrl.append("id=").append(idStr.trim());
             }
-
-            request.setAttribute("stocktake", stocktake);
-            request.getRequestDispatcher("/views/stocktake_detail.jsp").forward(request, response);
+            response.sendRedirect(redirectUrl.toString());
             return;
         }
+
+        request.setAttribute("isStaff", isStaff);
+        request.setAttribute("userRole", userRole.toLowerCase());
 
         // 2. Tải danh sách phân công kiểm kê
         List<Stocktake> list;
@@ -166,15 +163,24 @@ public class StocktakeServlet extends HttpServlet {
 
             String title = request.getParameter("title");
             String staffIdStr = request.getParameter("assignedStaffId");
-            int assignedStaffId = 3; // Mặc định Lê Lan Anh
+            int assignedStaffId = 7; // Mặc định Lê Lan Anh (0988000003)
             try {
                 if (staffIdStr != null && !staffIdStr.isEmpty()) {
                     assignedStaffId = Integer.parseInt(staffIdStr);
                 }
             } catch (Exception ignored) {}
 
+            Integer categoryId = null;
+            if (title != null) {
+                if (title.contains("Áo sơ mi")) categoryId = 1;
+                else if (title.contains("Áo thun")) categoryId = 2;
+                else if (title.contains("Quần")) categoryId = 3;
+                else if (title.contains("Váy đầm")) categoryId = 4;
+                else if (title.contains("Áo khoác")) categoryId = 5;
+            }
+
             String newCode = "KK-" + (System.currentTimeMillis() % 1000);
-            stocktakeDAO.createStocktake(newCode, (title != null ? title : "Kiểm kê khu vực"), assignedStaffId);
+            stocktakeDAO.createStocktake(newCode, (title != null ? title : "Kiểm kê khu vực"), assignedStaffId, userId, categoryId);
 
             notificationDAO.createNotification(assignedStaffId, "Phân công kiểm kê mới", 
                 "Bạn được Quản lý " + userName + " phân công kiểm kê " + title + " (Mã: " + newCode + ").", 

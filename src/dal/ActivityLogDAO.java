@@ -12,71 +12,36 @@ public class ActivityLogDAO extends DBContext {
 
     /**
      * Ghi lại nhật ký hoạt động hệ thống
-     * @param userId ID người dùng thực hiện (có thể là 0 nếu chưa đăng nhập)
-     * @param action Tên hành động thực hiện
-     * @param details Chi tiết nội dung thao tác
-     * @param ipAddress Địa chỉ IP của client
-     * @return true nếu ghi log thành công
      */
     public boolean log(int userId, String action, String details, String ipAddress) {
-        String findUserSql = "SELECT fullName, role FROM Users WHERE id = ?";
-        String insertSql = "INSERT INTO ActivityLogs (userId, userName, action, details, ipAddress, role, recordCode, result, createdAt) " +
-                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE())";
-
-        String userName = "Hệ thống";
-        String role = "SYSTEM";
-
-        try (Connection con = getConnection()) {
-            if (userId > 0) {
-                try (PreparedStatement psUser = con.prepareStatement(findUserSql)) {
-                    psUser.setInt(1, userId);
-                    try (ResultSet rs = psUser.executeQuery()) {
-                        if (rs.next()) {
-                            userName = rs.getString("fullName");
-                            role = rs.getString("role");
-                        }
-                    }
-                }
-            }
-
-            try (PreparedStatement ps = con.prepareStatement(insertSql)) {
-                ps.setInt(1, userId > 0 ? userId : 0);
-                ps.setString(2, userName);
-                ps.setString(3, action);
-                ps.setString(4, details);
-                ps.setString(5, ipAddress);
-                ps.setString(6, role);
-                ps.setString(7, "-");
-                ps.setString(8, "Thành công");
-
-                return ps.executeUpdate() > 0;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
+        return log(new ActivityLog(0, userId, null, action, details, ipAddress, null, "-", "Thành công", null));
     }
 
     /**
-     * Ghi nhật ký đầy đủ thuộc tính
-     * @param log Đối tượng ActivityLog
-     * @return true nếu ghi log thành công
+     * Ghi nhật ký đầy đủ thuộc tính vào bảng ActivityLogs (khớp chuẩn schema CSDL)
      */
     public boolean log(ActivityLog log) {
-        String sql = "INSERT INTO ActivityLogs (userId, userName, action, details, ipAddress, role, recordCode, result, createdAt) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE())";
+        String sql = "INSERT INTO ActivityLogs (user_id, action_type, record_target, description, created_at) " +
+                     "VALUES (?, ?, ?, ?, GETDATE())";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
-            ps.setInt(1, log.getUserId());
-            ps.setString(2, log.getUserName() != null ? log.getUserName() : "Hệ thống");
-            ps.setString(3, log.getAction());
-            ps.setString(4, log.getDetails());
-            ps.setString(5, log.getIpAddress());
-            ps.setString(6, log.getRole());
-            ps.setString(7, log.getRecordCode());
-            ps.setString(8, log.getResult() != null ? log.getResult() : "Thành công");
+            int uid = log.getUserId();
+            if (uid <= 0) uid = 2; // Mặc định Quản lý nếu chưa gán
+
+            ps.setInt(1, uid);
+            ps.setString(2, log.getAction() != null ? log.getAction() : "HOAT_DONG");
+            ps.setString(3, log.getRecordCode() != null && !log.getRecordCode().trim().isEmpty() ? log.getRecordCode() : "-");
+            
+            String desc = log.getDetails();
+            if (desc == null || desc.trim().isEmpty()) {
+                desc = log.getAction();
+            }
+            if (desc.length() > 250) {
+                desc = desc.substring(0, 250);
+            }
+            ps.setString(4, desc);
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -87,13 +52,22 @@ public class ActivityLogDAO extends DBContext {
 
     /**
      * Lấy danh sách nhật ký gần đây
-     * @param limit Số lượng bản ghi tối đa
-     * @return List<ActivityLog> danh sách nhật ký
      */
     public List<ActivityLog> getRecentLogs(int limit) {
         List<ActivityLog> list = new ArrayList<>();
-        String sql = "SELECT TOP (?) id, userId, userName, action, details, ipAddress, role, recordCode, result, createdAt " +
-                     "FROM ActivityLogs ORDER BY createdAt DESC";
+        String sql = "SELECT TOP (?) l.log_id AS id, " +
+                     "       l.user_id AS userId, " +
+                     "       ISNULL(u.full_name, N'Quản trị viên') AS userName, " +
+                     "       l.action_type AS action, " +
+                     "       l.description AS details, " +
+                     "       N'127.0.0.1' AS ipAddress, " +
+                     "       ISNULL(u.role, 'ADMIN') AS role, " +
+                     "       ISNULL(l.record_target, '-') AS recordCode, " +
+                     "       N'Thành công' AS result, " +
+                     "       l.created_at AS createdAt " +
+                     "FROM ActivityLogs l " +
+                     "LEFT JOIN Users u ON l.user_id = u.user_id " +
+                     "ORDER BY l.created_at DESC";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -112,28 +86,13 @@ public class ActivityLogDAO extends DBContext {
 
     /**
      * Lấy toàn bộ danh sách nhật ký hoạt động
-     * @return List<ActivityLog> danh sách toàn bộ log
      */
     public List<ActivityLog> getAllLogs() {
-        List<ActivityLog> list = new ArrayList<>();
-        String sql = "SELECT id, userId, userName, action, details, ipAddress, role, recordCode, result, createdAt " +
-                     "FROM ActivityLogs ORDER BY createdAt DESC";
-
-        try (Connection con = getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                list.add(mapLog(rs));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return list;
+        return getRecentLogs(200);
     }
 
     private ActivityLog mapLog(ResultSet rs) throws Exception {
-        int id = rs.getInt("id");
+        int id = (int) rs.getLong("id");
         int userId = rs.getInt("userId");
         String userName = rs.getString("userName");
         String action = rs.getString("action");
@@ -147,4 +106,3 @@ public class ActivityLogDAO extends DBContext {
         return new ActivityLog(id, userId, userName, action, details, ipAddress, role, recordCode, result, createdAt);
     }
 }
-

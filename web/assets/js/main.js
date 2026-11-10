@@ -45,26 +45,63 @@ document.addEventListener('click', function(e) {
 
 // Modal Utilities
 function openModal(modalId) {
-  const modal = document.getElementById(modalId);
+  const modal = (typeof modalId === 'string') ? document.getElementById(modalId) : modalId;
   if (modal) {
     modal.classList.add('show');
+    modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
   }
 }
 
 function closeModal(modalId) {
-  const modal = document.getElementById(modalId);
+  if (!modalId) {
+    document.querySelectorAll('.modal-backdrop').forEach(function(m) {
+      m.classList.remove('show');
+      m.style.display = 'none';
+    });
+    document.body.style.overflow = '';
+    return;
+  }
+  const modal = (typeof modalId === 'string') ? document.getElementById(modalId) : modalId;
   if (modal) {
     modal.classList.remove('show');
+    modal.style.display = 'none';
     document.body.style.overflow = '';
   }
 }
 
-// Close modal when clicking backdrop
+// Global window reference
+window.openModal = openModal;
+window.closeModal = closeModal;
+
+// Auto-bind click handler on all .modal-close and backdrop clicks
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.modal-close').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const parentModal = btn.closest('.modal-backdrop');
+      if (parentModal) {
+        closeModal(parentModal);
+      }
+    });
+  });
+});
+
+// Close modal when clicking directly on backdrop
 document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('modal-backdrop')) {
-    e.target.classList.remove('show');
-    document.body.style.overflow = '';
+  if (e.target && e.target.classList && e.target.classList.contains('modal-backdrop')) {
+    closeModal(e.target);
+  }
+});
+
+// Close modal when pressing ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' || e.keyCode === 27) {
+    document.querySelectorAll('.modal-backdrop').forEach(function(m) {
+      if (m.classList.contains('show') || m.style.display === 'flex' || m.style.display === 'block') {
+        closeModal(m);
+      }
+    });
   }
 });
 

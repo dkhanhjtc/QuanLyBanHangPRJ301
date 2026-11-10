@@ -16,9 +16,12 @@ public class ProductDAO extends DBContext {
         "       ISNULL(c.category_name, N'Thời trang') AS category, p.retail_price AS price, " +
         "       p.cost_price AS costPrice, p.stock_qty AS stockQuantity, p.min_stock_alert AS minStock, " +
         "       p.unit, (ISNULL(p.size, 'M') + ' - ' + ISNULL(p.color, N'Tiêu chuẩn')) AS spec, " +
-        "       p.image_url AS imageUrl, p.status " +
+        "       p.size, p.color, " +
+        "       p.image_url AS imageUrl, p.status, " +
+        "       p.supplier_id AS supplierId, ISNULL(s.supplier_name, N'-') AS supplierName " +
         "FROM Products p " +
-        "LEFT JOIN Categories c ON p.category_id = c.category_id ";
+        "LEFT JOIN Categories c ON p.category_id = c.category_id " +
+        "LEFT JOIN Suppliers s ON p.supplier_id = s.supplier_id ";
 
     /**
      * Lấy toàn bộ danh sách sản phẩm trong kho hàng
@@ -121,24 +124,136 @@ public class ProductDAO extends DBContext {
      * @return true nếu thêm thành công, false nếu thất bại
      */
     public boolean addProduct(Product p) {
-        String sql = "INSERT INTO Products (product_code, product_name, category_id, retail_price, cost_price, stock_qty, min_stock_alert, unit, size, color, image_url, status) " +
-                     "VALUES (?, ?, 1, ?, ?, ?, ?, ?, 'M', N'Tiêu chuẩn', ?, 'ACTIVE')";
+        String sql = "INSERT INTO Products (product_code, product_name, category_id, supplier_id, retail_price, cost_price, stock_qty, min_stock_alert, unit, size, color, image_url, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')";
+
+        int catId = 1;
+        if (p.getCategory() != null) {
+            String c = p.getCategory().toLowerCase();
+            if (c.contains("thun") || c.contains("polo")) catId = 2;
+            else if (c.contains("quần") || c.contains("jean") || c.contains("tây")) catId = 3;
+            else if (c.contains("váy") || c.contains("đầm")) catId = 4;
+            else if (c.contains("khoác")) catId = 5;
+            else if (c.contains("sơ mi")) catId = 1;
+        }
+
+        String size = p.getSize() != null && !p.getSize().trim().isEmpty() ? p.getSize() : "M";
+        String color = p.getColor() != null && !p.getColor().trim().isEmpty() ? p.getColor() : "Tiêu chuẩn";
+        String img = (p.getImageUrl() != null && !p.getImageUrl().trim().isEmpty()) ? p.getImageUrl() : "CC01.svg";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, p.getSku() != null ? p.getSku() : ("SP" + System.currentTimeMillis() % 1000));
             ps.setString(2, p.getName());
-            ps.setDouble(3, p.getPrice());
-            ps.setDouble(4, p.getCostPrice());
-            ps.setInt(5, p.getStockQuantity());
-            ps.setInt(6, p.getMinStock());
-            ps.setString(7, p.getUnit() != null ? p.getUnit() : "Cái");
-            ps.setString(8, p.getImageUrl() != null ? p.getImageUrl() : "CC01.svg");
+            ps.setInt(3, catId);
+            if (p.getSupplierId() != null && p.getSupplierId() > 0) {
+                ps.setInt(4, p.getSupplierId());
+            } else {
+                ps.setNull(4, java.sql.Types.INTEGER);
+            }
+            ps.setDouble(5, p.getPrice());
+            ps.setDouble(6, p.getCostPrice());
+            ps.setInt(7, p.getStockQuantity());
+            ps.setInt(8, p.getMinStock());
+            ps.setString(9, p.getUnit() != null ? p.getUnit() : "Cái");
+            ps.setString(10, size);
+            ps.setString(11, color);
+            ps.setString(12, img);
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Xóa sản phẩm an toàn:
+     * - Nếu sản phẩm đã từng có đơn hàng bán ra (OrderDetails): chuyển trạng thái sang DISCONTINUED (ngừng kinh doanh) để bảo toàn báo cáo doanh thu.
+     * - Nếu sản phẩm chưa từng bán ra: dọn dẹp các liên kết phụ trợ (kiểm kê nháp, phiếu nhập) rồi xóa hẳn khỏi bảng Products.
+     * Cả 2 trường hợp sản phẩm đều sẽ biến mất khỏi danh sách hàng hóa đang kinh doanh.
+     */
+    public boolean deleteProduct(String skuOrId) {
+        Product p = getProductById(skuOrId);
+        if (p == null) {
+            return false;
+        }
+
+        int prodId = 0;
+        try {
+            prodId = Integer.parseInt(p.getId());
+        } catch (Exception ignored) {}
+
+        String checkOrdersSql = "SELECT COUNT(*) FROM OrderDetails WHERE product_id = ?";
+        String deleteStocktakeSql = "DELETE FROM StocktakeDetails WHERE product_id = ?";
+        String deleteInboundSql = "DELETE FROM InboundShipmentDetails WHERE product_id = ?";
+        String deleteTransSql = "DELETE FROM StockTransactions WHERE product_id = ?";
+        String deleteProductSql = "DELETE FROM Products WHERE product_id = ? OR product_code = ?";
+        String discontinueSql = "UPDATE Products SET status = 'DISCONTINUED' WHERE product_id = ? OR product_code = ?";
+
+        Connection con = null;
+        try {
+            con = getConnection();
+
+            boolean hasOrders = false;
+            if (prodId > 0) {
+                try (PreparedStatement ps = con.prepareStatement(checkOrdersSql)) {
+                    ps.setInt(1, prodId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            hasOrders = true;
+                        }
+                    }
+                }
+            }
+
+            if (hasOrders) {
+                // Đã có đơn hàng bán ra: Soft delete sang DISCONTINUED
+                try (PreparedStatement ps = con.prepareStatement(discontinueSql)) {
+                    ps.setInt(1, prodId);
+                    ps.setString(2, skuOrId);
+                    return ps.executeUpdate() > 0;
+                }
+            } else {
+                // Chưa có đơn hàng: Dọn dẹp bản ghi kiểm kê/nhập nháp rồi xóa cứng
+                con.setAutoCommit(false);
+                if (prodId > 0) {
+                    try (PreparedStatement ps = con.prepareStatement(deleteStocktakeSql)) {
+                        ps.setInt(1, prodId);
+                        ps.executeUpdate();
+                    }
+                    try (PreparedStatement ps = con.prepareStatement(deleteInboundSql)) {
+                        ps.setInt(1, prodId);
+                        ps.executeUpdate();
+                    }
+                    try (PreparedStatement ps = con.prepareStatement(deleteTransSql)) {
+                        ps.setInt(1, prodId);
+                        ps.executeUpdate();
+                    }
+                }
+                try (PreparedStatement ps = con.prepareStatement(deleteProductSql)) {
+                    ps.setInt(1, prodId);
+                    ps.setString(2, skuOrId);
+                    int affected = ps.executeUpdate();
+                    con.commit();
+                    return affected > 0;
+                } catch (Exception innerEx) {
+                    con.rollback();
+                    // Fallback sang DISCONTINUED nếu còn ràng buộc khác
+                    try (PreparedStatement ps = con.prepareStatement(discontinueSql)) {
+                        ps.setInt(1, prodId);
+                        ps.setString(2, skuOrId);
+                        return ps.executeUpdate() > 0;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (con != null) {
+                try { con.close(); } catch (Exception ignored) {}
+            }
         }
         return false;
     }
@@ -149,22 +264,70 @@ public class ProductDAO extends DBContext {
      * @return true nếu cập nhật thành công, false nếu thất bại
      */
     public boolean updateProduct(Product p) {
-        String sql = "UPDATE Products SET product_name = ?, retail_price = ?, cost_price = ?, " +
-                     "stock_qty = ?, min_stock_alert = ?, unit = ?, image_url = COALESCE(?, image_url) " +
+        String sql = "UPDATE Products SET product_name = ?, category_id = ?, supplier_id = ?, size = ?, color = ?, " +
+                     "retail_price = ?, cost_price = ?, stock_qty = ?, min_stock_alert = ?, unit = ?, " +
+                     "image_url = CASE WHEN ? IS NOT NULL AND ? <> '' THEN ? ELSE image_url END " +
                      "WHERE product_code = ? OR CAST(product_id AS VARCHAR(50)) = ?";
+
+        int catId = 1;
+        if (p.getCategory() != null) {
+            String c = p.getCategory().toLowerCase();
+            if (c.contains("thun") || c.contains("polo")) catId = 2;
+            else if (c.contains("quần") || c.contains("jean") || c.contains("tây")) catId = 3;
+            else if (c.contains("váy") || c.contains("đầm")) catId = 4;
+            else if (c.contains("khoác")) catId = 5;
+            else if (c.contains("sơ mi")) catId = 1;
+        }
+
+        String size = p.getSize() != null && !p.getSize().trim().isEmpty() ? p.getSize() : "M";
+        String color = p.getColor() != null && !p.getColor().trim().isEmpty() ? p.getColor() : "Tiêu chuẩn";
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, p.getName());
-            ps.setDouble(2, p.getPrice());
-            ps.setDouble(3, p.getCostPrice());
-            ps.setInt(4, p.getStockQuantity());
-            ps.setInt(5, p.getMinStock());
-            ps.setString(6, p.getUnit());
-            ps.setString(7, p.getImageUrl());
-            ps.setString(8, p.getId());
-            ps.setString(9, p.getId());
+            ps.setInt(2, catId);
+            if (p.getSupplierId() != null && p.getSupplierId() > 0) {
+                ps.setInt(3, p.getSupplierId());
+            } else {
+                ps.setNull(3, java.sql.Types.INTEGER);
+            }
+            ps.setString(4, size);
+            ps.setString(5, color);
+            ps.setDouble(6, p.getPrice());
+            ps.setDouble(7, p.getCostPrice());
+            ps.setInt(8, p.getStockQuantity());
+            ps.setInt(9, p.getMinStock());
+            ps.setString(10, p.getUnit() != null ? p.getUnit() : "Cái");
+            ps.setString(11, p.getImageUrl());
+            ps.setString(12, p.getImageUrl());
+            ps.setString(13, p.getImageUrl());
+            ps.setString(14, p.getSku() != null ? p.getSku() : p.getId());
+            ps.setString(15, p.getId() != null ? p.getId() : p.getSku());
+
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Tạo phiếu nhập hàng mới từ nhà cung cấp / xưởng may (trạng thái PENDING chờ quản lý duyệt)
+     */
+    public boolean createPurchaseOrder(String code, String supplierName, String productId, int quantity, double costPrice, int createdBy) {
+        String sql = "INSERT INTO PurchaseOrders (code, supplierName, productId, totalQuantity, totalCost, status, createdBy, createdAt) " +
+                     "VALUES (?, ?, ?, ?, ?, 'PENDING', ?, GETDATE())";
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, code);
+            ps.setString(2, supplierName);
+            ps.setString(3, productId);
+            ps.setInt(4, quantity);
+            ps.setDouble(5, costPrice * quantity);
+            ps.setInt(6, createdBy > 0 ? createdBy : 2);
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -308,10 +471,21 @@ public class ProductDAO extends DBContext {
         int minStock = rs.getInt("minStock");
         String unit = rs.getString("unit");
         String spec = rs.getString("spec");
+        String size = rs.getString("size");
+        String color = rs.getString("color");
         String imageUrl = rs.getString("imageUrl");
         String status = rs.getString("status");
 
-        return new Product(id, sku, name, category, price, costPrice, stockQuantity, minStock, unit, spec, imageUrl, status);
+        Product prod = new Product(id, sku, name, category, price, costPrice, stockQuantity, minStock, unit, spec, size, color, imageUrl, status);
+        try {
+            int sid = rs.getInt("supplierId");
+            if (!rs.wasNull()) prod.setSupplierId(sid);
+        } catch (Exception ignored) {}
+        try {
+            prod.setSupplierName(rs.getString("supplierName"));
+        } catch (Exception ignored) {}
+
+        return prod;
     }
 
     private PurchaseOrder mapPurchaseOrder(ResultSet rs) throws Exception {

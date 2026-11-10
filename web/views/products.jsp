@@ -2,69 +2,36 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-<c:set var="isApprovalsTab" value="${param.tab eq 'approvals' || activeTab eq 'approvals'}" />
-<c:set var="activeMenu" value="${isApprovalsTab ? 'approvals' : 'products'}" />
-<c:set var="breadcrumbCurrent" value="${isApprovalsTab ? 'Duyệt hàng về' : 'Hàng hóa'}" />
+<c:set var="userRole" value="${not empty requestScope.userRole ? requestScope.userRole : (empty sessionScope.userRole ? (empty sessionScope.user.role ? (empty currentRole ? 'manager' : currentRole) : sessionScope.user.role.toLowerCase()) : sessionScope.userRole.toLowerCase())}" />
+<c:set var="isStaff" value="${not empty requestScope.isStaff ? requestScope.isStaff : (userRole eq 'staff' || sessionScope.user.role eq 'STAFF')}" />
+<c:set var="activeMenu" value="products" />
+<c:set var="breadcrumbCurrent" value="Hàng hóa" />
 
 <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${isApprovalsTab ? 'Duyệt hàng về' : 'Quản lý hàng hóa'} · Kiotflow</title>
+  <title>Quản lý hàng hóa · Kiotflow</title>
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
-  <script>
-    window.CONTEXT_PATH = "${pageContext.request.contextPath}";
-  </script>
-  <style>
-    .sub-nav-tabs {
-      display: flex;
-      gap: 28px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 24px;
-    }
-    .sub-nav-tab {
-      padding: 10px 4px 14px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: none;
-      border-top: none;
-      border-left: none;
-      border-right: none;
-      transition: all 0.15s ease;
-    }
-    .sub-nav-tab:hover {
-      color: var(--text-main);
-    }
-    .sub-nav-tab.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
-    }
-  </style>
 </head>
 <body>
 
 <div class="app-container">
   <jsp:include page="/common/sidebar.jsp">
-    <jsp:param name="activeMenu" value="${activeMenu}" />
+    <jsp:param name="activeMenu" value="products" />
   </jsp:include>
 
   <div class="main-content">
     <jsp:include page="/common/header.jsp">
-      <jsp:param name="breadcrumbCurrent" value="${breadcrumbCurrent}" />
+      <jsp:param name="breadcrumbCurrent" value="Hàng hóa" />
     </jsp:include>
 
     <div class="page-body">
       <!-- Page Top Header -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
         <div>
-          <h1 style="font-size: 1.85rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">Quản lý hàng hóa</h1>
+          <h1 style="font-size: 1.85rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">Danh mục hàng hóa</h1>
           <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
             ${totalProductsCount != null ? totalProductsCount : 0} sản phẩm · ${totalUnits != null ? totalUnits : 0} đơn vị tồn kho · Giá trị vốn <fmt:formatNumber value="${totalInventoryCapital != null ? totalInventoryCapital : 0}" pattern="#,###"/> đ
           </div>
@@ -78,257 +45,156 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
             <span>Xuất danh sách</span>
           </button>
-          <button type="button" class="btn btn-primary" onclick="openNewProductModal()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>Thêm hàng hóa</span>
-          </button>
+          <c:if test="${!isStaff}">
+            <button type="button" class="btn btn-primary" onclick="openNewProductModal()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Thêm hàng hóa</span>
+            </button>
+          </c:if>
         </div>
       </div>
 
-      <!-- Tab Buttons Navigation -->
-      <div class="sub-nav-tabs">
-        <button type="button" class="sub-nav-tab ${not isApprovalsTab ? 'active' : ''}" id="tabBtnProducts" onclick="switchProductTab('products')">
-          <span>Hàng hóa</span>
-        </button>
-        <button type="button" class="sub-nav-tab ${isApprovalsTab ? 'active' : ''}" id="tabBtnApprovals" onclick="switchProductTab('approvals')">
-          <span>Duyệt hàng về</span>
-          <span class="badge badge-primary" style="font-size: 0.7rem; padding: 2px 7px;">${pendingPOCount != null ? pendingPOCount : 0}</span>
-        </button>
-      </div>
-
-      <!-- ====================================================================
-           TAB 1: PRODUCTS INVENTORY TABLE VIEW
-           ==================================================================== -->
-      <div id="productsTableView" style="${isApprovalsTab ? 'display: none;' : ''}">
-        <div class="card">
-          <!-- Filter Bar -->
-          <div style="padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px;">
-            <div style="display: flex; gap: 12px; align-items: center; flex: 1; max-width: 650px;">
-              <div class="input-icon-wrapper" style="flex: 1;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" class="form-input" placeholder="Tìm tên sản phẩm hoặc SKU..." id="filterProductInput" oninput="filterProductTable(this.value)">
-              </div>
-              <select class="form-select" style="width: auto; font-size: 0.85rem;" onchange="location.href='${pageContext.request.contextPath}/products?category=' + this.value">
-                <option value="all" ${param.category == null || param.category eq 'all' ? 'selected' : ''}>Tất cả nhóm hàng</option>
-                <option value="coffee" ${param.category eq 'coffee' ? 'selected' : ''}>Cà phê &amp; trà</option>
-                <option value="drinks" ${param.category eq 'drinks' ? 'selected' : ''}>Đồ uống</option>
-                <option value="food" ${param.category eq 'food' ? 'selected' : ''}>Thực phẩm</option>
-              </select>
+      <!-- PRODUCTS INVENTORY TABLE VIEW -->
+      <div class="card">
+        <!-- Filter Bar -->
+        <div style="padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; gap: 12px; align-items: center; flex: 1; max-width: 650px;">
+            <div class="input-icon-wrapper" style="flex: 1;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="form-input" placeholder="Tìm tên sản phẩm hoặc SKU..." id="filterProductInput" oninput="filterProductTable(this.value)">
             </div>
-            <div>
-              <span class="badge" style="background: #fef2f2; color: #ef4444; font-size: 0.8rem; padding: 6px 12px; font-weight: 700;">
-                ${lowStockCount != null ? lowStockCount : 0} hàng chạm đáy
-              </span>
-            </div>
+            <select class="form-select" style="width: 180px;" onchange="filterByCategory(this.value)">
+              <option value="">Tất cả nhóm hàng</option>
+              <option value="Áo sơ mi">Áo sơ mi</option>
+              <option value="Áo thun">Áo thun / Polo</option>
+              <option value="Quần">Quần Jeans / Tây</option>
+              <option value="Váy đầm">Váy đầm</option>
+              <option value="Áo khoác">Áo khoác</option>
+            </select>
           </div>
+          <div>
+            <span style="font-size: 0.8rem; color: #64748b;">
+              Cảnh báo chạm đáy: <strong style="color: #dc2626;">${lowStockCount != null ? lowStockCount : 0} SP</strong>
+            </span>
+          </div>
+        </div>
 
-          <!-- Inventory Table (Truy vấn từ CSDL, Không hardcode) -->
-          <div class="table-responsive">
-            <table class="custom-table" id="productMasterTable">
-              <thead>
-                <tr>
-                  <th style="width: 50px;">Ảnh</th>
-                  <th>SKU</th>
-                  <th>Tên sản phẩm</th>
-                  <th>Giá nhập</th>
-                  <th>Giá bán</th>
-                  <th>Tồn kho</th>
-                  <th>Tối thiểu</th>
-                  <th>Trạng thái</th>
-                  <th style="text-align: right;">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                <c:choose>
-                  <c:when test="${not empty products}">
-                    <c:forEach items="${products}" var="p">
-                      <tr class="product-data-row" data-name="${p.name}" data-sku="${p.sku}">
-                        <td>
-                          <img src="${pageContext.request.contextPath}/assets/images/${p.imageUrl != null ? p.imageUrl : 'CF01.svg'}" alt="${p.name}" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;">
-                        </td>
-                        <td style="font-weight: 600; color: #0f172a;">${p.sku}</td>
-                        <td>
-                          <div style="font-weight: 600; color: #0f172a;">${p.name}</div>
-                          <div style="font-size: 0.72rem; color: #64748b;">${p.spec != null ? p.spec : p.unit} · ${p.category}</div>
-                        </td>
-                        <td><fmt:formatNumber value="${p.costPrice}" pattern="#,###"/> đ</td>
-                        <td style="font-weight: 600;"><fmt:formatNumber value="${p.price}" pattern="#,###"/> đ</td>
-                        
-                        <!-- Reactive Stock Quantity highlighting -->
-                        <td style="font-weight: 700; ${p.stockQuantity <= p.minStock ? 'color: #ef4444;' : 'color: #0f172a;'}">
-                          ${p.stockQuantity}
-                        </td>
-                        <td>${p.minStock}</td>
-                        <td>
+        <!-- Table -->
+        <div class="table-responsive">
+          <table class="custom-table" id="productsTable">
+            <thead>
+              <tr>
+                <th style="width: 60px;">ẢNH</th>
+                <th>MÃ SKU</th>
+                <th>TÊN HÀNG HÓA</th>
+                <th>NHÓM HÀNG</th>
+                <th>SIZE / MÀU</th>
+                <th>ĐƠN VỊ</th>
+                <th style="text-align: right;">GIÁ VỐN</th>
+                <th style="text-align: right;">GIÁ BÁN</th>
+                <th style="text-align: center;">TỒN KHO</th>
+                <th style="text-align: center;">TỒN TỐI THIỂU</th>
+                <th style="text-align: center;">TRẠNG THÁI</th>
+                <c:if test="${!isStaff}">
+                  <th style="text-align: right;">THAO TÁC</th>
+                </c:if>
+              </tr>
+            </thead>
+            <tbody>
+              <c:choose>
+                <c:when test="${not empty products}">
+                  <c:forEach items="${products}" var="p">
+                    <tr class="product-row" data-name="${p.name}" data-sku="${p.sku}" data-category="${p.category}">
+                      <td>
+                        <div style="width: 40px; height: 40px; border-radius: 8px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e2e8f0;">
                           <c:choose>
-                            <c:when test="${p.stockQuantity <= p.minStock}">
-                              <span class="badge badge-danger">Chạm đáy</span>
+                            <c:when test="${not empty p.imageUrl and (p.imageUrl.startsWith('http://') or p.imageUrl.startsWith('https://'))}">
+                              <img src="${p.imageUrl}" alt="${p.name}" style="width: 100%; height: 100%; object-fit: cover;">
                             </c:when>
                             <c:otherwise>
-                              <span class="badge badge-success">Đủ hàng</span>
+                              <span style="font-size: 1.1rem; color: #475569; font-weight: 700;">👕</span>
                             </c:otherwise>
                           </c:choose>
-                        </td>
-                        <td style="text-align: right;">
-                          <button type="button" class="btn btn-outline" style="padding: 4px 8px;"
-                            data-sku="<c:out value='${p.sku}'/>"
-                            data-name="<c:out value='${p.name}'/>"
-                            data-category="<c:out value='${p.category}'/>"
-                            data-unit="<c:out value='${p.unit}'/>"
-                            data-cost="<c:out value='${p.costPrice}'/>"
-                            data-price="<c:out value='${p.price}'/>"
-                            data-stock="<c:out value='${p.stockQuantity}'/>"
-                            data-min="<c:out value='${p.minStock}'/>"
-                            data-image="<c:out value='${p.imageUrl}'/>"
-                            onclick="handleEditProduct(this)"
-                            title="Chỉnh sửa">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                          </button>
-                        </td>
-                      </tr>
-                    </c:forEach>
-                  </c:when>
-                  <c:otherwise>
-                    <tr>
-                      <td colspan="9" style="text-align: center; padding: 48px 10px; color: #94a3b8;">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-                        <div style="font-weight: 600;">Không tìm thấy sản phẩm nào trong kho</div>
-                        <div style="font-size: 0.75rem;">Nhấn "Thêm hàng hóa" để thêm sản phẩm mới vào danh mục</div>
+                        </div>
                       </td>
-                    </tr>
-                  </c:otherwise>
-                </c:choose>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Pagination Bar -->
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid var(--border); font-size: 0.8rem; color: #64748b;">
-            <div>Hiển thị ${products != null ? products.size() : 0} sản phẩm trong kho</div>
-          </div>
-        </div>
-
-        <!-- Footnote Info -->
-        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #64748b; margin-top: 16px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          <span>Nhãn “Chạm đáy” xuất hiện khi Tồn kho &le; Mức tồn tối thiểu. Chỉ hàng về đã duyệt mới được cộng vào tồn kho.</span>
-        </div>
-      </div>
-
-      <!-- ====================================================================
-           TAB 2: STOCK INFLOW APPROVALS VIEW (DUYỆT HÀNG VỀ)
-           ==================================================================== -->
-      <div id="approvalsTableView" style="${not isApprovalsTab ? 'display: none;' : ''}">
-        <!-- 3 Stat Cards -->
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
-          <div class="card" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <div style="width: 44px; height: 44px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center;">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>
-            </div>
-            <div>
-              <div style="font-size: 0.75rem; color: #64748b;">Phiếu chờ duyệt</div>
-              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">${pendingPOCount != null ? pendingPOCount : 0} phiếu</div>
-            </div>
-          </div>
-
-          <div class="card" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <div style="width: 44px; height: 44px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center;">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-            </div>
-            <div>
-              <div style="font-size: 0.75rem; color: #64748b;">Số lượng chờ nhập</div>
-              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">${pendingQty != null ? pendingQty : 0} đơn vị</div>
-            </div>
-          </div>
-
-          <div class="card" style="padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <div style="width: 44px; height: 44px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center;">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-            </div>
-            <div>
-              <div style="font-size: 0.75rem; color: #64748b;">Tổng giá trị nhập đề nghị</div>
-              <div style="font-size: 1.5rem; font-weight: 800; color: #0f172a;"><fmt:formatNumber value="${pendingCost != null ? pendingCost : 0}" pattern="#,###"/> <span style="text-decoration: underline;">đ</span></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Inflow Table Card (Truy vấn từ CSDL, Không hardcode) -->
-        <div class="card" style="margin-bottom: 24px;">
-          <div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border);">
-            <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a;">
-              Danh sách phiếu hàng về chờ quyết định
-            </div>
-            <div style="font-size: 0.8rem; color: #64748b; font-weight: 500;">
-              Chỉ Quản lý được duyệt
-            </div>
-          </div>
-
-          <div class="table-responsive">
-            <table class="custom-table">
-              <thead>
-                <tr>
-                  <th>Phiếu nhập</th>
-                  <th>Nhà cung cấp</th>
-                  <th>Hàng thực nhận</th>
-                  <th>Số lượng</th>
-                  <th>Người gửi</th>
-                  <th>Tồn sau duyệt</th>
-                  <th style="text-align: right;">Quyết định</th>
-                </tr>
-              </thead>
-              <tbody>
-                <c:choose>
-                  <c:when test="${not empty pendingPOs}">
-                    <c:forEach items="${pendingPOs}" var="po">
-                      <tr id="ticket-row-${po.code}">
-                        <td>
-                          <div style="font-weight: 700; color: #2563eb;">${po.code}</div>
-                          <div style="font-size: 0.72rem; color: #64748b;">${po.formattedDate}</div>
-                          <span class="badge badge-warning" style="margin-top: 4px; font-size: 0.7rem;">Chờ duyệt</span>
-                        </td>
-                        <td>
-                          <div style="font-weight: 600; color: #0f172a;">${po.supplierName}</div>
-                        </td>
-                        <td>
-                          <div style="font-weight: 600; color: #0f172a;">${po.productName}</div>
-                          <div style="font-size: 0.72rem; color: #64748b;">${po.productId} · <fmt:formatNumber value="${po.totalCost}" pattern="#,###"/> đ</div>
-                        </td>
-                        <td style="font-weight: 700; color: #0f172a;">+${po.totalQuantity}</td>
-                        <td style="color: #0f172a;">${po.createdByName}</td>
-                        <td>
-                          <div style="font-weight: 700; color: #2563eb;">${po.stockBefore} &rarr; ${po.stockAfter}</div>
-                          <div style="font-size: 0.7rem; color: #94a3b8;">Chưa cộng kho</div>
-                        </td>
+                      <td style="font-weight: 700; color: #2563eb;">${p.sku}</td>
+                      <td>
+                        <div style="font-weight: 600; color: #0f172a;">${p.name}</div>
+                      </td>
+                      <td>
+                        <span class="badge" style="background: #f1f5f9; color: #475569;">${p.category}</span>
+                      </td>
+                      <td style="font-size: 0.85rem; color: #334155;">
+                        ${not empty p.spec ? p.spec : 'M · Tiêu chuẩn'}
+                      </td>
+                      <td>${p.unit != null ? p.unit : 'Cái'}</td>
+                      <td style="text-align: right; font-weight: 500; color: #64748b;">
+                        <fmt:formatNumber value="${p.costPrice}" pattern="#,###"/> đ
+                      </td>
+                      <td style="text-align: right; font-weight: 700; color: #0f172a;">
+                        <fmt:formatNumber value="${p.price}" pattern="#,###"/> đ
+                      </td>
+                      <td style="text-align: center; font-weight: 700; color: ${p.stockQuantity <= p.minStock ? '#dc2626' : '#059669'};">
+                        ${p.stockQuantity}
+                      </td>
+                      <td style="text-align: center; color: #64748b;">${p.minStock}</td>
+                      <td style="text-align: center;">
+                        <c:choose>
+                          <c:when test="${p.stockQuantity <= p.minStock}">
+                            <span class="badge badge-danger">Chạm đáy</span>
+                          </c:when>
+                          <c:otherwise>
+                            <span class="badge badge-success">An toàn</span>
+                          </c:otherwise>
+                        </c:choose>
+                      </td>
+                      <c:if test="${!isStaff}">
                         <td style="text-align: right;">
-                          <form action="${pageContext.request.contextPath}/products" method="POST" style="display:inline;">
-                            <input type="hidden" name="action" value="approve_inflow">
-                            <input type="hidden" name="poId" value="${po.id}">
-                            <input type="hidden" name="poCode" value="${po.code}">
-                            <button type="submit" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="return confirm('Xác nhận DUYỆT phiếu ${po.code} và cộng +${po.totalQuantity} vào tồn kho?')">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                              <span>Duyệt</span>
+                          <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-outline edit-prod-btn" style="padding: 5px 12px; font-size: 0.8rem;" 
+                                    data-sku="${p.sku}"
+                                    data-name="${p.name}"
+                                    data-category="${p.category}"
+                                    data-unit="${p.unit}"
+                                    data-spec="${p.spec}"
+                                    data-cost="${p.costPrice}"
+                                    data-price="${p.price}"
+                                    data-stock="${p.stockQuantity}"
+                                    data-minstock="${p.minStock}"
+                                    data-image="${p.imageUrl}"
+                                    data-supplier="${p.supplierId}"
+                                    onclick="handleEditProductClick(this)">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                              <span>Sửa</span>
                             </button>
-                          </form>
-                          <button type="button" class="btn btn-danger-outline" style="padding: 6px 14px; font-size: 0.8rem;" onclick="openRejectModal('${po.id}', '${po.code}', '${po.productName}', '${po.supplierName}', '${po.createdByName}', ${po.totalQuantity}, ${po.stockBefore})">
-                            <span>Từ chối</span>
-                          </button>
+                            <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem; color: #dc2626; border-color: #fecaca; background: #fff5f5;"
+                                    data-sku="${p.sku}"
+                                    data-name="${p.name}"
+                                    onclick="openDeleteProductModal(this.getAttribute('data-sku'), this.getAttribute('data-name'))">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                              <span>Xóa</span>
+                            </button>
+                          </div>
                         </td>
-                      </tr>
-                    </c:forEach>
-                  </c:when>
-                  <c:otherwise>
-                    <tr>
-                      <td colspan="7" style="text-align: center; padding: 48px 10px; color: #94a3b8;">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;"><polyline points="20 6 9 17 4 12"/></svg>
-                        <div style="font-weight: 600;">Không có phiếu nhập kho nào đang chờ duyệt</div>
-                        <div style="font-size: 0.75rem;">Khi có hàng về gửi từ nhà cung cấp, thông tin sẽ xuất hiện tại đây</div>
-                      </td>
+                      </c:if>
                     </tr>
-                  </c:otherwise>
-                </c:choose>
-              </tbody>
-            </table>
-          </div>
+                  </c:forEach>
+                </c:when>
+                <c:otherwise>
+                  <tr>
+                    <td colspan="${isStaff ? 11 : 12}" style="text-align: center; padding: 48px; color: #94a3b8;">
+                      Chưa có sản phẩm nào trong kho hàng.
+                    </td>
+                  </tr>
+                </c:otherwise>
+              </c:choose>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-top: 1px solid var(--border); font-size: 0.8rem; color: #64748b;">
+          <div>Hiển thị ${products != null ? products.size() : 0} sản phẩm trong kho</div>
         </div>
       </div>
     </div>
@@ -336,30 +202,30 @@
 </div>
 
 <!-- ==========================================================================
-     MODAL: CHỈNH SỬA & THÊM HÀNG HÓA
+     MODAL: CHỈNH SỬA & THÊM HÀNG HÓA (CHỈ QUẢN LÝ)
      ========================================================================== -->
-<div class="modal-backdrop" id="productEditModal">
-  <div class="modal-window" style="max-width: 820px; width: 92%; max-height: 90vh; overflow-y: auto;">
+<div class="modal-backdrop" id="productEditModal" style="display: none;">
+  <div class="modal-window" style="max-width: 840px; width: 92%; max-height: 90vh; overflow-y: auto;">
     <div class="modal-header">
       <div>
-        <h3 class="modal-title">Thông tin hàng hóa</h3>
-        <div class="modal-sub" id="modalProductSubtitle">Cập nhật thông tin trong danh mục</div>
+        <h3 class="modal-title" id="modalProductTitle">Thông tin hàng hóa</h3>
+        <div class="modal-sub" id="modalProductSubtitle">Cập nhật thông tin trong danh mục kho hàng</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('productEditModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('productEditModal')">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/products" method="POST">
       <input type="hidden" name="action" value="save">
-      <div class="modal-body" style="padding: 20px 24px;">
+      <div class="modal-body" style="padding: 22px 26px;">
         <!-- Hàng 1: Mã SKU & Tên sản phẩm -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductSku">Mã SKU *</label>
-            <input type="text" id="modalProductSku" name="sku" class="form-input" placeholder="Ví dụ: AT01" required>
+            <input type="text" id="modalProductSku" name="sku" class="form-input" placeholder="Ví dụ: SM03" required>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductName">Tên sản phẩm *</label>
-            <input type="text" id="modalProductName" name="name" class="form-input" placeholder="Ví dụ: Áo thun YOLO" required>
+            <input type="text" id="modalProductName" name="name" class="form-input" placeholder="Ví dụ: Áo Sơ Mi Lụa Hàn Quốc" required>
           </div>
         </div>
 
@@ -373,34 +239,32 @@
               <option value="Quần">Quần Jeans / Quần Tây</option>
               <option value="Váy đầm">Váy đầm</option>
               <option value="Áo khoác">Áo khoác</option>
-              <option value="Khác">Phụ kiện / Khác</option>
             </select>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductUnit">Đơn vị tính</label>
-            <input type="text" id="modalProductUnit" name="unit" class="form-input" placeholder="Ví dụ: Cái, Bộ, Chiếc">
+            <input type="text" id="modalProductUnit" name="unit" class="form-input" value="Cái" placeholder="Cái, Bộ, Chiếc">
           </div>
         </div>
 
-        <!-- Hàng 3 (DEDICATED ROW): Nhà cung cấp / Xưởng may chiếm trọn 1 dòng riêng -->
+        <!-- HÀNG RIÊNG (DEDICATED ROW): Nhà cung cấp / Xưởng may -->
         <div class="form-group" style="margin-bottom: 14px;">
-          <label class="form-label" for="modalProductSupplier">Nhà cung cấp / Xưởng may</label>
+          <label class="form-label" for="modalProductSupplier">Nhà cung cấp / Xưởng may liên kết</label>
           <select id="modalProductSupplier" name="supplierId" class="form-select" style="width: 100%;">
             <option value="">-- Chọn Nhà cung cấp / Xưởng may liên kết --</option>
             <c:forEach items="${suppliers}" var="sup">
-              <option value="${sup.supplierId}">${sup.supplierName} (${sup.supplierCode})<c:if test="${not empty sup.contactPhone}"> · SĐT: ${sup.contactPhone}</c:if></option>
+              <option value="${sup.supplierId}">${sup.supplierName} (${sup.supplierCode}) · SĐT: ${sup.contactPhone}</option>
             </c:forEach>
           </select>
         </div>
 
-        <!-- Hàng 4: Kích cỡ (Size) và Màu sắc (Color) cho thời trang -->
+        <!-- Hàng 3: Kích cỡ (Size) và Màu sắc (Color) -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductSize">Kích cỡ (Size)</label>
             <select id="modalProductSize" name="size" class="form-select">
-              <option value="">-- Chọn Size --</option>
               <option value="S">Size S</option>
-              <option value="M">Size M</option>
+              <option value="M" selected>Size M</option>
               <option value="L">Size L</option>
               <option value="XL">Size XL</option>
               <option value="XXL">Size XXL</option>
@@ -417,34 +281,35 @@
           </div>
         </div>
 
-        <!-- Hàng 5: Giá nhập & Giá bán -->
+        <!-- Hàng 4: Giá nhập & Giá bán -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductCost">Giá nhập (đ) *</label>
-            <input type="number" id="modalProductCost" name="costPrice" class="form-input" placeholder="85000" required>
+            <input type="number" id="modalProductCost" name="costPrice" class="form-input" placeholder="200000" required>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductPrice">Giá bán (đ) *</label>
-            <input type="number" id="modalProductPrice" name="price" class="form-input" placeholder="125000" required>
+            <input type="number" id="modalProductPrice" name="price" class="form-input" placeholder="350000" required>
           </div>
         </div>
 
-        <!-- Hàng 6: Tồn kho hiện tại & Mức tồn tối thiểu -->
+        <!-- Hàng 5: Tồn kho hiện tại & Mức tồn tối thiểu -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductStock">Tồn kho hiện tại *</label>
-            <input type="number" id="modalProductStock" name="stockQuantity" class="form-input" oninput="checkStockThresholdWarning()" required>
+            <input type="number" id="modalProductStock" name="stockQuantity" class="form-input" value="30" required>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="modalProductMinStock">Mức tồn tối thiểu *</label>
-            <input type="number" id="modalProductMinStock" name="minStock" class="form-input" oninput="checkStockThresholdWarning()" required>
+            <input type="number" id="modalProductMinStock" name="minStock" class="form-input" value="5" required>
           </div>
         </div>
 
-        <!-- Dynamic Stock Warning Banner -->
-        <div id="modalStockWarning" style="display: none; align-items: center; gap: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px; margin-top: 8px; font-size: 0.8rem; color: #b45309;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span>Tồn kho hiện tại bằng hoặc dưới mức tối thiểu. Sản phẩm sẽ được gắn nhãn “Chạm đáy”.</span>
+        <!-- Hàng 6: Link hình ảnh (URL trên mạng hoặc để trống) -->
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label" for="modalProductImageUrl">Link hình ảnh (URL mạng hoặc để trống)</label>
+          <input type="text" id="modalProductImageUrl" name="imageUrl" class="form-input" placeholder="https://... hoặc để trống">
+          <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">Bạn có thể dán link ảnh trực tuyến từ web hoặc để trống.</div>
         </div>
       </div>
 
@@ -459,85 +324,130 @@
   </div>
 </div>
 
-<!-- ==========================================================================
-     MODAL: TỪ CHỐI PHIẾU NHẬP HÀNG (REJECTION REASON)
-     ========================================================================== -->
-<div class="modal-backdrop" id="rejectTicketModal">
-  <div class="modal-window">
+<!-- MODAL: XÁC NHẬN XÓA HÀNG HÓA -->
+<div class="modal-backdrop" id="deleteProductModal" style="display: none;">
+  <div class="modal-window" style="max-width: 440px; width: 90%;">
     <div class="modal-header">
-      <div>
-        <h3 class="modal-title">Từ chối phiếu <span id="rejectTicketIdTitle">PN-025</span></h3>
-        <div class="modal-sub" id="rejectTicketSub">Nhập lý do từ chối phiếu hàng về</div>
-      </div>
-      <button type="button" class="modal-close" onclick="closeModal('rejectTicketModal')">&times;</button>
+      <h3 class="modal-title" style="color: #dc2626;">Xác nhận xóa hàng hóa</h3>
+      <button type="button" class="modal-close" onclick="closeModal('deleteProductModal')">&#215;</button>
     </div>
+    <form action="${pageContext.request.contextPath}/products" method="POST">
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="sku" id="deleteProductSku" value="">
 
-    <form action="${pageContext.request.contextPath}/products" method="POST" id="rejectForm">
-      <input type="hidden" name="action" value="reject_inflow">
-      <input type="hidden" name="poId" id="rejectPoIdInput">
-      <input type="hidden" name="poCode" id="rejectPoCodeInput">
-
-      <div class="modal-body">
-        <!-- Summary Box -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-          <div>
-            <div style="font-size: 0.75rem; color: #64748b;">Số lượng đề nghị</div>
-            <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a;" id="rejectQtyDisplay">0 đơn vị</div>
-          </div>
-          <div>
-            <div style="font-size: 0.75rem; color: #64748b;">Tồn kho hiện tại</div>
-            <div style="font-size: 1.35rem; font-weight: 800; color: #0f172a;" id="rejectStockDisplay">0 đơn vị</div>
-          </div>
-        </div>
-
-        <!-- Textarea Reason with Validation -->
-        <div class="form-group">
-          <label class="form-label" for="rejectReasonInput">Lý do từ chối *</label>
-          <textarea id="rejectReasonInput" name="rejectReason" class="form-textarea" rows="4" placeholder="Nhập lý do cụ thể để người gửi kiểm tra lại..." required></textarea>
-        </div>
-
-        <!-- Warning Box -->
-        <div style="display: flex; align-items: flex-start; gap: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px; margin-top: 14px; font-size: 0.8rem; color: #b45309;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <div>Phiếu bị từ chối sẽ không cộng số lượng vào kho. Lý do được ghi lại trong Nhật ký hoạt động.</div>
-        </div>
+      <div class="modal-body" style="padding: 20px 24px; font-size: 0.9rem; color: #475569; line-height: 1.5;">
+        Bạn có chắc muốn xóa sản phẩm <strong id="deleteProductName" style="color: #0f172a;"></strong> (Mã SKU: <span id="deleteProductSkuDisplay" style="color: #2563eb; font-weight: 700;"></span>)?<br>
+        <span style="font-size: 0.8rem; color: #64748b; margin-top: 6px; display: block;">Nếu sản phẩm đã từng có đơn hàng bán ra, hệ thống sẽ tự động ngừng kinh doanh sản phẩm này để bảo toàn số liệu doanh thu.</span>
       </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" onclick="closeModal('rejectTicketModal')">Hủy</button>
-        <button type="submit" class="btn btn-primary">Xác nhận từ chối</button>
+      <div class="modal-footer" style="padding: 14px 24px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border);">
+        <button type="button" class="btn btn-outline" onclick="closeModal('deleteProductModal')">Hủy</button>
+        <button type="submit" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626;">Đồng ý xóa</button>
       </div>
     </form>
   </div>
 </div>
 
-<script src="${pageContext.request.contextPath}/assets/js/products.js"></script>
 <script>
-  function openRejectModal(id, code, productName, supplier, sender, qty, currentStock) {
-    document.getElementById('rejectPoIdInput').value = id;
-    document.getElementById('rejectPoCodeInput').value = code;
-    document.getElementById('rejectTicketIdTitle').textContent = code;
-    document.getElementById('rejectTicketSub').textContent = productName + ' · Nhà cung cấp ' + supplier + ' · Người gửi: ' + sender;
-    document.getElementById('rejectQtyDisplay').textContent = qty + ' đơn vị';
-    document.getElementById('rejectStockDisplay').textContent = currentStock + ' đơn vị';
-    document.getElementById('rejectReasonInput').value = '';
-    openModal('rejectTicketModal');
+  function openDeleteProductModal(sku, name) {
+    document.getElementById('deleteProductSku').value = sku;
+    document.getElementById('deleteProductSkuDisplay').textContent = sku;
+    document.getElementById('deleteProductName').textContent = name;
+    document.getElementById('deleteProductModal').style.display = 'flex';
+  }
+  function openNewProductModal() {
+    document.getElementById('modalProductTitle').textContent = 'Thêm hàng hóa mới';
+    document.getElementById('modalProductSubtitle').textContent = 'Tạo sản phẩm mới trong kho hàng SQL Server';
+    document.getElementById('modalProductSku').value = '';
+    document.getElementById('modalProductSku').readOnly = false;
+    document.getElementById('modalProductName').value = '';
+    document.getElementById('modalProductColor').value = '';
+    document.getElementById('modalProductCost').value = '';
+    document.getElementById('modalProductPrice').value = '';
+    document.getElementById('modalProductStock').value = '20';
+    document.getElementById('modalProductMinStock').value = '5';
+    document.getElementById('modalProductImageUrl').value = '';
+    document.getElementById('modalProductSupplier').value = '';
+    document.getElementById('productEditModal').style.display = 'flex';
+  }
+
+  function handleEditProductClick(btn) {
+    const sku = btn.getAttribute('data-sku') || '';
+    const name = btn.getAttribute('data-name') || '';
+    const category = btn.getAttribute('data-category') || '';
+    const unit = btn.getAttribute('data-unit') || 'Cái';
+    const spec = btn.getAttribute('data-spec') || '';
+    const cost = btn.getAttribute('data-cost') || '0';
+    const price = btn.getAttribute('data-price') || '0';
+    const stock = btn.getAttribute('data-stock') || '0';
+    const minStock = btn.getAttribute('data-minstock') || '5';
+    const img = btn.getAttribute('data-image') || '';
+    const supplier = btn.getAttribute('data-supplier') || '';
+    openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img, supplier);
+  }
+
+  function openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img, supplier) {
+    document.getElementById('modalProductTitle').textContent = 'Chỉnh sửa: ' + name;
+    document.getElementById('modalProductSubtitle').textContent = 'Mã SKU: ' + sku;
+    document.getElementById('modalProductSku').value = sku;
+    document.getElementById('modalProductSku').readOnly = true;
+    document.getElementById('modalProductName').value = name;
+    document.getElementById('modalProductCategory').value = category;
+    document.getElementById('modalProductUnit').value = unit || 'Cái';
+    document.getElementById('modalProductSupplier').value = supplier || '';
+    document.getElementById('modalProductCost').value = cost;
+    document.getElementById('modalProductPrice').value = price;
+    document.getElementById('modalProductStock').value = stock;
+    document.getElementById('modalProductMinStock').value = minStock;
+    document.getElementById('modalProductImageUrl').value = (img && !img.endsWith('.svg')) ? img : '';
+
+    if (spec) {
+      if (spec.includes('Size S')) document.getElementById('modalProductSize').value = 'S';
+      else if (spec.includes('Size M') || spec.startsWith('M')) document.getElementById('modalProductSize').value = 'M';
+      else if (spec.includes('Size L') || spec.startsWith('L')) document.getElementById('modalProductSize').value = 'L';
+      else if (spec.includes('Size XL') || spec.startsWith('XL')) document.getElementById('modalProductSize').value = 'XL';
+      else if (spec.includes('Size XXL')) document.getElementById('modalProductSize').value = 'XXL';
+      else if (spec.includes('31')) document.getElementById('modalProductSize').value = '31';
+      else if (spec.includes('32')) document.getElementById('modalProductSize').value = '32';
+      
+      const parts = spec.split('·');
+      if (parts.length > 1) {
+        document.getElementById('modalProductColor').value = parts[1].trim();
+      } else {
+        const hyphenParts = spec.split('-');
+        if (hyphenParts.length > 1) {
+          document.getElementById('modalProductColor').value = hyphenParts[1].trim();
+        }
+      }
+    }
+    document.getElementById('productEditModal').style.display = 'flex';
+  }
+
+  function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) {
+      m.style.display = 'none';
+      m.classList.remove('show');
+    }
+    document.body.style.overflow = '';
   }
 
   function filterProductTable(query) {
-    var q = query.trim().toLowerCase();
-    var rows = document.querySelectorAll('.product-data-row');
-    rows.forEach(function(row) {
-      var name = (row.getAttribute('data-name') || '').toLowerCase();
-      var sku = (row.getAttribute('data-sku') || '').toLowerCase();
-      if (name.indexOf(q) !== -1 || sku.indexOf(q) !== -1) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
+    const q = query.trim().toLowerCase();
+    document.querySelectorAll('.product-row').forEach(row => {
+      const name = (row.getAttribute('data-name') || '').toLowerCase();
+      const sku = (row.getAttribute('data-sku') || '').toLowerCase();
+      row.style.display = (name.includes(q) || sku.includes(q)) ? '' : 'none';
+    });
+  }
+
+  function filterByCategory(cat) {
+    document.querySelectorAll('.product-row').forEach(row => {
+      const rowCat = row.getAttribute('data-category') || '';
+      row.style.display = (!cat || rowCat.includes(cat)) ? '' : 'none';
     });
   }
 </script>
+
 <jsp:include page="/common/footer.jsp" />
 </body>
 </html>

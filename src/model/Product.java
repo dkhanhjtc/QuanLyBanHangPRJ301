@@ -19,6 +19,8 @@ public class Product implements Serializable {
     private String color;
     private String imageUrl;
     private String status;
+    private Integer supplierId;
+    private String supplierName;
 
     public Product() {
     }
@@ -215,6 +217,22 @@ public class Product implements Serializable {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Integer getSupplierId() {
+        return supplierId;
+    }
+
+    public void setSupplierId(Integer supplierId) {
+        this.supplierId = supplierId;
+    }
+
+    public String getSupplierName() {
+        return supplierName != null ? supplierName : "-";
+    }
+
+    public void setSupplierName(String supplierName) {
+        this.supplierName = supplierName;
     }
 
     public boolean isLowStock() {

@@ -43,7 +43,7 @@ public class UserDAO extends DBContext {
         if (loginCodeOrPhone == null || password == null) return null;
 
         String cleanCode = loginCodeOrPhone.trim();
-        String cleanPhone = cleanCode.replace(" ", "");
+        String cleanPhone = cleanCode.replaceAll("[\\s.-]", "");
         String hashedPassword = hashSHA256(password);
 
         // =========================================================================

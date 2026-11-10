@@ -23,36 +23,110 @@
           sku: "${p.sku}",
           name: "${p.name}",
           spec: "${p.spec != null ? p.spec : p.unit}",
+          size: "${p.size != null ? p.size : 'M'}",
+          color: "${p.color != null ? p.color : 'Tiêu chuẩn'}",
           category: "${p.category}",
           price: ${p.price},
           stock: ${p.stockQuantity},
           minStock: ${p.minStock},
           unit: "${p.unit != null ? p.unit : 'Cái'}",
-          image: "${p.imageUrl != null ? p.imageUrl : 'CC01.svg'}"
+          image: "${p.imageUrl != null ? p.imageUrl : ''}"
         }${!loop.last ? ',' : ''}
       </c:forEach>
     ];
   </script>
   <style>
-    .filter-tab-pill {
-      padding: 6px 14px;
-      border-radius: 9999px;
-      font-size: 0.8rem;
+    .pos-tab-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.825rem;
       font-weight: 600;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .pos-tab-item:hover {
+      background: #e2e8f0;
+    }
+    .pos-tab-item.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 2px 4px rgba(37,99,235,0.2);
+    }
+    .pos-tab-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      line-height: 1;
+      background: rgba(0,0,0,0.12);
+      color: inherit;
+      border: none;
+      cursor: pointer;
+    }
+    .pos-tab-close:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+    .pos-tab-add {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 0.825rem;
+      font-weight: 700;
+      background: #fff;
+      color: #2563eb;
+      border: 1px dashed #93c5fd;
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    .filter-tab-pill:hover {
-      background: var(--surface-alt);
-      color: var(--text-main);
+    .pos-tab-add:hover {
+      background: #eff6ff;
+      border-color: #2563eb;
     }
-    .filter-tab-pill.active {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: #ffffff;
+    .pos-search-table th {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .pos-search-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+    .pos-search-table tr:hover {
+      background: #f8fafc;
+    }
+    .pos-thumb-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      flex-shrink: 0;
     }
   </style>
 </head>
@@ -109,13 +183,13 @@
 
       <!-- POS Main Grid Split -->
       <div class="pos-container">
-        <!-- LEFT COLUMN: CATALOG & SEARCH -->
+        <!-- LEFT COLUMN: SEARCH & DETAIL TABLE -->
         <div>
           <!-- Search Box & Scanner -->
           <div style="display: flex; gap: 10px; align-items: center;">
             <div class="input-icon-wrapper" style="flex: 1;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" class="form-input" placeholder="Tìm tên sản phẩm, SKU hoặc quét mã vạch..." oninput="searchProducts(this.value)">
+              <input type="text" class="form-input" id="posSearchInput" placeholder="Tìm tên sản phẩm hoặc mã SKU..." oninput="searchProducts(this.value)" autocomplete="off">
             </div>
             <button type="button" class="icon-button" style="width: 42px; height: 42px;" title="Quét mã vạch" onclick="alert('Đã sẵn sàng kết nối máy quét mã vạch!')">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -124,58 +198,9 @@
             </button>
           </div>
 
-          <!-- Category Filter Pills (Thời trang & Phân loại) -->
-          <div style="display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;">
-            <button type="button" class="filter-tab-pill active" onclick="filterCategory('all', this)">Tất cả · ${products != null ? products.size() : 0}</button>
-            <button type="button" class="filter-tab-pill" onclick="filterCategory('Áo sơ mi', this)">Áo sơ mi</button>
-            <button type="button" class="filter-tab-pill" onclick="filterCategory('Áo thun', this)">Áo thun / Polo</button>
-            <button type="button" class="filter-tab-pill" onclick="filterCategory('Quần', this)">Quần Jean / Tây</button>
-            <button type="button" class="filter-tab-pill" onclick="filterCategory('Váy đầm', this)">Váy đầm</button>
-            <button type="button" class="filter-tab-pill" onclick="filterCategory('Áo khoác', this)">Áo khoác</button>
-          </div>
-
-          <!-- Product Cards Grid (Rendered from DB, No Hardcoding) -->
-          <div class="pos-catalog-grid" id="productGridContainer">
-            <c:choose>
-              <c:when test="${not empty products}">
-                <c:forEach items="${products}" var="p">
-                  <div class="product-card" data-category="${p.category}" data-name="${p.name}" data-sku="${p.sku}">
-                    <div class="product-card-img-wrap">
-                      <img src="${pageContext.request.contextPath}/assets/images/${p.imageUrl != null ? p.imageUrl : 'CC01.svg'}" alt="${p.name}">
-                    </div>
-                    <div class="product-card-body">
-                      <div class="product-title">${p.name}</div>
-                      <div class="product-sku-spec" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                        <span class="badge" style="background:#eff6ff; color:#2563eb; font-size:0.7rem; padding:2px 6px;">${p.spec != null ? p.spec : p.unit}</span>
-                        <span style="color:#94a3b8; font-size:0.7rem;">${p.sku}</span>
-                      </div>
-                      <div class="product-card-footer">
-                        <div>
-                          <div class="product-price"><fmt:formatNumber value="${p.price}" pattern="#,###"/> đ</div>
-                          <c:choose>
-                            <c:when test="${p.stockQuantity <= p.minStock}">
-                              <div class="product-stock-tag low-stock">Có sẵn: ${p.stockQuantity} · Sắp hết</div>
-                            </c:when>
-                            <c:otherwise>
-                              <div class="product-stock-tag">Có sẵn: ${p.stockQuantity}</div>
-                            </c:otherwise>
-                          </c:choose>
-                        </div>
-                        <button type="button" class="btn-add-circle" onclick="addToCart('${p.sku}')" title="Thêm vào giỏ">+</button>
-                      </div>
-                    </div>
-                  </div>
-                </c:forEach>
-              </c:when>
-
-              <c:otherwise>
-                <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #94a3b8; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:12px;"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-                  <div style="font-weight: 700; font-size: 1rem; color: #0f172a;">Kho hàng chưa có sản phẩm nào</div>
-                  <div style="font-size: 0.85rem; margin-top: 4px;">Vui lòng thêm sản phẩm mới trong trang Quản lý hàng hóa hoặc nhập dữ liệu vào SQL Server.</div>
-                </div>
-              </c:otherwise>
-            </c:choose>
+          <!-- DETAIL SEARCH RESULTS CONTAINER (EMPTY BY DEFAULT TO AVOID CLUTTER) -->
+          <div id="productGridContainer" style="margin-top: 16px;">
+            <!-- Populated reactively by pos.js: shows detail table when searching, or empty guide when not -->
           </div>
 
           <!-- Dynamic Overstock Warning Banner -->
@@ -191,13 +216,18 @@
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: REACTIVE CART -->
+        <!-- RIGHT COLUMN: REACTIVE CART WITH MULTI-ORDER TABS -->
         <div class="pos-cart-panel" id="posCartPanel">
+          <!-- Order Tabs (Browser-style tabs: Đơn 1, Đơn 2, ...) -->
+          <div class="pos-order-tabs" id="orderTabsContainer" style="display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0;">
+            <!-- Populated reactively by pos.js -->
+          </div>
+
           <!-- Cart Header -->
           <div class="pos-cart-header">
             <div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a;">Đơn hàng mới</h3>
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a;" id="cartTitleHeading">Đơn hàng mới</h3>
                 <span class="badge badge-primary" id="cartItemCountBadge">0 sản phẩm</span>
               </div>
               <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">Khách lẻ · Giá bán niêm yết</div>
@@ -257,7 +287,7 @@
         <h3 class="modal-title" style="color: #16a34a;">Bắt đầu ca làm việc</h3>
         <div class="modal-sub">Khai báo số tiền mặt trong két để mở phiên bán hàng</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('startShiftModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('startShiftModal')">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/pos" method="POST">
@@ -299,7 +329,7 @@
         <h3 class="modal-title" style="color: #dc2626;">Kết ca làm việc</h3>
         <div class="modal-sub">Chốt doanh số ca và bàn giao két tiền cuối ca</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('closeShiftModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('closeShiftModal')">&#215;</button>
     </div>
 
     <form action="${pageContext.request.contextPath}/pos" method="POST">
@@ -353,7 +383,7 @@
         <h3 class="modal-title">Hóa đơn bán hàng</h3>
         <div class="modal-sub">Giao dịch đã được ghi nhận vào CSDL SQL Server</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('invoiceModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('invoiceModal')">&#215;</button>
     </div>
 
     <div class="modal-body" style="padding: 24px 32px;">
@@ -434,7 +464,7 @@
         <h3 class="modal-title">Đơn hàng trong ca</h3>
         <div class="modal-sub"><c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Lê Lan Anh'}" /> · Hôm nay</div>
       </div>
-      <button type="button" class="modal-close" onclick="closeModal('shiftOrdersModal')">&times;</button>
+      <button type="button" class="modal-close" onclick="closeModal('shiftOrdersModal')">&#215;</button>
     </div>
 
     <div class="modal-body">
@@ -501,12 +531,16 @@
   }
   function closeModal(id) {
     const m = document.getElementById(id);
-    if (m) m.style.display = 'none';
+    if (m) {
+      m.style.display = 'none';
+      m.classList.remove('show');
+    }
+    document.body.style.overflow = '';
   }
 </script>
 
-<!-- POS Interactive Script -->
-<script src="${pageContext.request.contextPath}/assets/js/pos.js?v=2" charset="UTF-8"></script>
+<!-- POS Interactive Script (Cache Busted) -->
+<script src="${pageContext.request.contextPath}/assets/js/pos.js?v=20261110_fix9" charset="UTF-8"></script>
 <jsp:include page="/common/footer.jsp" />
 </body>
 </html>

@@ -56,6 +56,9 @@ public class ProductServlet extends HttpServlet {
         HttpSession session = request.getSession(false);
         User currentUser = (session != null) ? (User) session.getAttribute("user") : null;
         Integer currentUserId = (currentUser != null) ? currentUser.getId() : null;
+        boolean isStaff = currentUser != null && "STAFF".equalsIgnoreCase(currentUser.getRole());
+        request.setAttribute("isStaff", isStaff);
+        request.setAttribute("userRole", currentUser != null && currentUser.getRole() != null ? currentUser.getRole().toLowerCase() : "manager");
         request.setAttribute("notifications", notificationDAO.getNotificationsForUser(currentUserId, 5));
         request.setAttribute("unreadNotificationCount", notificationDAO.getUnreadCount(currentUserId));
 
@@ -98,6 +101,12 @@ public class ProductServlet extends HttpServlet {
         int userId = (currentUser != null) ? currentUser.getId() : 1;
         String userName = (currentUser != null) ? currentUser.getFullName() : "Quản lý";
         String userRole = (currentUser != null) ? currentUser.getRole() : "MANAGER";
+
+        // Thu ngân chỉ có quyền xem hàng hóa, không được thêm/sửa
+        if ("STAFF".equalsIgnoreCase(userRole)) {
+            response.sendRedirect(request.getContextPath() + "/products?error=unauthorized");
+            return;
+        }
 
         String action = request.getParameter("action");
         if (action == null) {
@@ -178,7 +187,28 @@ public class ProductServlet extends HttpServlet {
             return;
         }
 
-        // 3. Xử lý Thêm / Sửa hàng hóa
+        // 3. Xử lý Xóa hàng hóa
+        if ("delete".equalsIgnoreCase(action)) {
+            String sku = request.getParameter("sku");
+            if (sku != null && !sku.trim().isEmpty()) {
+                Product p = productDAO.getProductById(sku);
+                String pName = p != null ? p.getName() : sku;
+                boolean deleted = productDAO.deleteProduct(sku);
+                if (deleted) {
+                    logDAO.log(new ActivityLog(0, userId, userName, "Xóa hàng hóa", 
+                        "Xóa sản phẩm " + pName + " (" + sku + ") khỏi kho hàng", 
+                        request.getRemoteAddr(), userRole, sku, "Thành công", null));
+                } else {
+                    logDAO.log(new ActivityLog(0, userId, userName, "Xóa hàng hóa", 
+                        "Không thể xóa sản phẩm " + pName + " (" + sku + ") do ràng buộc hệ thống", 
+                        request.getRemoteAddr(), userRole, sku, "Thất bại", null));
+                }
+            }
+            response.sendRedirect(request.getContextPath() + "/products");
+            return;
+        }
+
+        // 4. Xử lý Thêm / Sửa hàng hóa
         String sku = request.getParameter("sku");
         String name = request.getParameter("name");
         String cat = request.getParameter("category");
@@ -209,10 +239,34 @@ public class ProductServlet extends HttpServlet {
                 spec = s.isEmpty() ? unit : s;
             }
 
+            String imageUrl = request.getParameter("imageUrl");
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                imageUrl = sku + ".svg";
+            }
+
             Product existing = productDAO.getProductById(sku);
-            Product p = new Product(sku, sku, name, cat, price, costPrice, stock, minStock, unit, spec, size, color, sku + ".svg", "ACTIVE");
+            Product p = new Product(sku, sku, name, cat, price, costPrice, stock, minStock, unit, spec, size, color, imageUrl, "ACTIVE");
+
+            String supplierIdStr = request.getParameter("supplierId");
+            String supplierName = request.getParameter("supplierName");
+            Integer supplierId = null;
+            try {
+                if (supplierIdStr != null && !supplierIdStr.trim().isEmpty()) {
+                    supplierId = Integer.parseInt(supplierIdStr);
+                }
+            } catch (Exception ignored) {}
+            if (supplierId == null && supplierName != null && !supplierName.trim().isEmpty()) {
+                for (Supplier sup : supplierDAO.getAllSuppliers()) {
+                    if (supplierName.trim().equalsIgnoreCase(sup.getSupplierName().trim())) {
+                        supplierId = sup.getSupplierId();
+                        break;
+                    }
+                }
+            }
+            p.setSupplierId(supplierId);
 
             if (existing != null) {
+                p.setId(existing.getId());
                 productDAO.updateProduct(p);
                 logDAO.log(new ActivityLog(0, userId, userName, "Cập nhật hàng hóa", 
                     "Cập nhật thông tin cho sản phẩm " + name + " (" + sku + ")", 

@@ -59,6 +59,10 @@ public class PosServlet extends HttpServlet {
         List<Product> lowStockProducts = productDAO.getLowStockProducts();
         request.setAttribute("lowStockProducts", lowStockProducts);
 
+        boolean isStaff = currentUser == null || "STAFF".equalsIgnoreCase(currentUser.getRole());
+        request.setAttribute("isStaff", isStaff);
+        request.setAttribute("userRole", currentUser != null && currentUser.getRole() != null ? currentUser.getRole().toLowerCase() : "staff");
+
         // 4. Lấy thông báo thông minh cho nhân viên thu ngân
         Integer currentUserId = (currentUser != null) ? currentUser.getId() : null;
         request.setAttribute("notifications", notificationDAO.getNotificationsForUser(currentUserId, 5));

@@ -33,8 +33,11 @@ public class AuthFilter implements Filter {
         // Thiết lập mã hóa UTF-8 toàn hệ thống
         req.setCharacterEncoding("UTF-8");
         res.setCharacterEncoding("UTF-8");
-        if (!path.startsWith("/assets/") && !path.endsWith(".css") && !path.endsWith(".js")
-                && !path.endsWith(".svg") && !path.endsWith(".png") && !path.endsWith(".jpg")
+        if (path.endsWith(".js")) {
+            res.setContentType("application/javascript;charset=UTF-8");
+        } else if (path.endsWith(".css")) {
+            res.setContentType("text/css;charset=UTF-8");
+        } else if (!path.startsWith("/assets/") && !path.endsWith(".svg") && !path.endsWith(".png") && !path.endsWith(".jpg")
                 && !path.endsWith(".ico") && !path.endsWith(".woff") && !path.endsWith(".woff2")) {
             res.setContentType("text/html;charset=UTF-8");
         }
@@ -71,14 +74,18 @@ public class AuthFilter implements Filter {
         // 3. Phân quyền truy cập theo vai trò người dùng (RBAC)
         String role = user.getRole() != null ? user.getRole().toUpperCase() : "";
 
-        // Nhân viên (STAFF): Chỉ được phép vào /pos, /stocktakes, /stocktake-detail
+        // Nhân viên (STAFF): Cho phép truy cập /pos, /products (chỉ xem), /stocktakes
         if ("STAFF".equals(role)) {
             if (path.startsWith("/dashboard") ||
-                path.startsWith("/products") ||
+                path.startsWith("/suppliers") ||
+                path.startsWith("/categories") ||
+                path.startsWith("/inbound-shipments") ||
                 path.startsWith("/admin-users") ||
                 path.startsWith("/activity-log") ||
                 path.equals("/views/dashboard.jsp") ||
-                path.equals("/views/products.jsp") ||
+                path.equals("/views/suppliers.jsp") ||
+                path.equals("/views/categories.jsp") ||
+                path.equals("/views/inbound_shipments.jsp") ||
                 path.equals("/views/admin_users.jsp") ||
                 path.equals("/views/activity_log.jsp")) {
                 res.sendRedirect(contextPath + "/pos");
@@ -86,12 +93,10 @@ public class AuthFilter implements Filter {
             }
         }
 
-        // Quản lý (MANAGER): Không được vào quản trị tài khoản Super Admin (/admin-users, /activity-log)
+        // Quản lý (MANAGER): Không được vào quản trị tài khoản Super Admin (/admin-users)
         if ("MANAGER".equals(role)) {
             if (path.startsWith("/admin-users") ||
-                path.startsWith("/activity-log") ||
-                path.equals("/views/admin_users.jsp") ||
-                path.equals("/views/activity_log.jsp")) {
+                path.equals("/views/admin_users.jsp")) {
                 res.sendRedirect(contextPath + "/dashboard");
                 return;
             }

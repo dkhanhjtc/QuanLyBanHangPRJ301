@@ -75,7 +75,7 @@
             <fmt:formatNumber value="${kpiSummary.totalInventoryValue != null ? kpiSummary.totalInventoryValue : 0}" pattern="#,###"/> <span style="text-decoration: underline;">đ</span>
           </div>
           <div class="kpi-sub-row">
-            &sum; Tồn &times; Giá nhập · ${kpiSummary.totalUnits != null ? kpiSummary.totalUnits : 0} đơn vị
+            &sum; Tồn &#215; Giá nhập · ${kpiSummary.totalUnits != null ? kpiSummary.totalUnits : 0} đơn vị
           </div>
         </div>
 

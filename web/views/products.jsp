@@ -150,21 +150,28 @@
                       </td>
                       <c:if test="${!isStaff}">
                         <td style="text-align: right;">
-                          <button type="button" class="btn btn-outline edit-prod-btn" style="padding: 5px 12px; font-size: 0.8rem;" 
-                                  data-sku="${p.sku}"
-                                  data-name="<c:out value='${p.name}'/>"
-                                  data-category="<c:out value='${p.category}'/>"
-                                  data-unit="<c:out value='${p.unit}'/>"
-                                  data-spec="<c:out value='${p.spec}'/>"
-                                  data-cost="${p.costPrice}"
-                                  data-price="${p.price}"
-                                  data-stock="${p.stockQuantity}"
-                                  data-minstock="${p.minStock}"
-                                  data-image="<c:out value='${p.imageUrl}'/>"
-                                  onclick="handleEditProductClick(this)">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            <span>Sửa</span>
-                          </button>
+                          <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-outline edit-prod-btn" style="padding: 5px 12px; font-size: 0.8rem;" 
+                                    data-sku="${p.sku}"
+                                    data-name="<c:out value='${p.name}'/>"
+                                    data-category="<c:out value='${p.category}'/>"
+                                    data-unit="<c:out value='${p.unit}'/>"
+                                    data-spec="<c:out value='${p.spec}'/>"
+                                    data-cost="${p.costPrice}"
+                                    data-price="${p.price}"
+                                    data-stock="${p.stockQuantity}"
+                                    data-minstock="${p.minStock}"
+                                    data-image="<c:out value='${p.imageUrl}'/>"
+                                    onclick="handleEditProductClick(this)">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                              <span>Sửa</span>
+                            </button>
+                            <button type="button" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem; color: #dc2626; border-color: #fecaca; background: #fff5f5;"
+                                    onclick="openDeleteProductModal('${p.sku}', '<c:out value="${p.name}"/>')">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                              <span>Xóa</span>
+                            </button>
+                          </div>
                         </td>
                       </c:if>
                     </tr>
@@ -314,9 +321,38 @@
     </form>
   </div>
 </div>
+
+<!-- MODAL: XÁC NHẬN XÓA HÀNG HÓA -->
+<div class="modal-backdrop" id="deleteProductModal" style="display: none;">
+  <div class="modal-window" style="max-width: 440px; width: 90%;">
+    <div class="modal-header">
+      <h3 class="modal-title" style="color: #dc2626;">Xác nhận xóa hàng hóa</h3>
+      <button type="button" class="modal-close" onclick="closeModal('deleteProductModal')">&times;</button>
+    </div>
+    <form action="${pageContext.request.contextPath}/products" method="POST">
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="sku" id="deleteProductSku" value="">
+
+      <div class="modal-body" style="padding: 20px 24px; font-size: 0.9rem; color: #475569; line-height: 1.5;">
+        Bạn có chắc muốn xóa sản phẩm <strong id="deleteProductName" style="color: #0f172a;"></strong> (Mã SKU: <span id="deleteProductSkuDisplay" style="color: #2563eb; font-weight: 700;"></span>)?<br>
+        <span style="font-size: 0.8rem; color: #64748b; margin-top: 6px; display: block;">Nếu sản phẩm đã từng có đơn hàng bán ra, hệ thống sẽ tự động ngừng kinh doanh sản phẩm này để bảo toàn số liệu doanh thu.</span>
+      </div>
+      <div class="modal-footer" style="padding: 14px 24px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border);">
+        <button type="button" class="btn btn-outline" onclick="closeModal('deleteProductModal')">Hủy</button>
+        <button type="submit" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626;">Đồng ý xóa</button>
+      </div>
+    </form>
+  </div>
+</div>
 </c:if>
 
 <script>
+  function openDeleteProductModal(sku, name) {
+    document.getElementById('deleteProductSku').value = sku;
+    document.getElementById('deleteProductSkuDisplay').textContent = sku;
+    document.getElementById('deleteProductName').textContent = name;
+    document.getElementById('deleteProductModal').style.display = 'flex';
+  }
   function openNewProductModal() {
     document.getElementById('modalProductTitle').textContent = 'Thêm hàng hóa mới';
     document.getElementById('modalProductSubtitle').textContent = 'Tạo sản phẩm mới trong kho hàng SQL Server';

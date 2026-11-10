@@ -77,10 +77,14 @@ public class AuthFilter implements Filter {
         // Nhân viên (STAFF): Cho phép truy cập /pos, /products (chỉ xem), /stocktakes
         if ("STAFF".equals(role)) {
             if (path.startsWith("/dashboard") ||
+                path.startsWith("/suppliers") ||
+                path.startsWith("/categories") ||
                 path.startsWith("/inbound-shipments") ||
                 path.startsWith("/admin-users") ||
                 path.startsWith("/activity-log") ||
                 path.equals("/views/dashboard.jsp") ||
+                path.equals("/views/suppliers.jsp") ||
+                path.equals("/views/categories.jsp") ||
                 path.equals("/views/inbound_shipments.jsp") ||
                 path.equals("/views/admin_users.jsp") ||
                 path.equals("/views/activity_log.jsp")) {
@@ -89,12 +93,10 @@ public class AuthFilter implements Filter {
             }
         }
 
-        // Quản lý (MANAGER): Không được vào quản trị tài khoản Super Admin (/admin-users, /activity-log)
+        // Quản lý (MANAGER): Không được vào quản trị tài khoản Super Admin (/admin-users)
         if ("MANAGER".equals(role)) {
             if (path.startsWith("/admin-users") ||
-                path.startsWith("/activity-log") ||
-                path.equals("/views/admin_users.jsp") ||
-                path.equals("/views/activity_log.jsp")) {
+                path.equals("/views/admin_users.jsp")) {
                 res.sendRedirect(contextPath + "/dashboard");
                 return;
             }

@@ -162,6 +162,32 @@ public class ProductDAO extends DBContext {
     }
 
     /**
+     * Xóa sản phẩm an toàn: cố gắng xóa cứng nếu chưa có giao dịch, nếu đã có giao dịch thì soft delete status='INACTIVE'
+     */
+    public boolean deleteProduct(String skuOrId) {
+        String deleteSql = "DELETE FROM Products WHERE product_code = ? OR CAST(product_id AS VARCHAR(50)) = ?";
+        String deactivateSql = "UPDATE Products SET status = 'INACTIVE' WHERE product_code = ? OR CAST(product_id AS VARCHAR(50)) = ?";
+
+        try (Connection con = getConnection()) {
+            try (PreparedStatement ps = con.prepareStatement(deleteSql)) {
+                ps.setString(1, skuOrId);
+                ps.setString(2, skuOrId);
+                if (ps.executeUpdate() > 0) return true;
+            } catch (Exception fkEx) {
+                // Vướng khóa ngoại bảng đơn hàng/kiểm kê -> Chuyển sang INACTIVE
+                try (PreparedStatement ps2 = con.prepareStatement(deactivateSql)) {
+                    ps2.setString(1, skuOrId);
+                    ps2.setString(2, skuOrId);
+                    return ps2.executeUpdate() > 0;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
      * Cập nhật thông tin hàng hóa
      * @param p Đối tượng sản phẩm có dữ liệu mới
      * @return true nếu cập nhật thành công, false nếu thất bại

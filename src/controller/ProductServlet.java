@@ -187,7 +187,22 @@ public class ProductServlet extends HttpServlet {
             return;
         }
 
-        // 3. Xử lý Thêm / Sửa hàng hóa
+        // 3. Xử lý Xóa hàng hóa
+        if ("delete".equalsIgnoreCase(action)) {
+            String sku = request.getParameter("sku");
+            if (sku != null && !sku.trim().isEmpty()) {
+                Product p = productDAO.getProductById(sku);
+                String pName = p != null ? p.getName() : sku;
+                productDAO.deleteProduct(sku);
+                logDAO.log(new ActivityLog(0, userId, userName, "Xóa hàng hóa", 
+                    "Xóa sản phẩm " + pName + " (" + sku + ") khỏi kho hàng", 
+                    request.getRemoteAddr(), userRole, sku, "Thành công", null));
+            }
+            response.sendRedirect(request.getContextPath() + "/products");
+            return;
+        }
+
+        // 4. Xử lý Thêm / Sửa hàng hóa
         String sku = request.getParameter("sku");
         String name = request.getParameter("name");
         String cat = request.getParameter("category");

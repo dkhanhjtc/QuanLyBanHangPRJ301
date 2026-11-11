@@ -559,7 +559,7 @@
 </script>
 
 <!-- POS Interactive Script (Cache Busted) -->
-<script src="${pageContext.request.contextPath}/assets/js/pos.js?v=20261111_v1" charset="UTF-8"></script>
+<script src="${pageContext.request.contextPath}/assets/js/pos.js?v=20261111_v3" charset="UTF-8"></script>
 <jsp:include page="/common/footer.jsp" />
 </body>
 </html>

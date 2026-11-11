@@ -34,7 +34,7 @@ function getActiveCart() {
 
 // Format VND currency
 function formatVND(amount) {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ';
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' VN\u0110';
 }
 
 // Render Order Tabs Bar
@@ -96,6 +96,9 @@ function closeOrderTab(tabId, event) {
     renderCart();
   }
 }
+
+// Reusable clean SVG clothes icon (Pure ASCII, never corrupts across encodings)
+const CLOTHES_ICON_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg>';
 
 // Search and render Detail Table (Nothing shown when empty to avoid clutter)
 function searchProducts(query) {
@@ -163,8 +166,8 @@ function searchProducts(query) {
   matches.forEach(p => {
     const isImageValid = p.image && (p.image.startsWith('http://') || p.image.startsWith('https://'));
     const imgHtml = isImageValid
-      ? `<img src="${p.image}" alt="${escapeHtml(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<span style=\\'font-size:1.2rem;\\'>\uD83D\uDC55</span>'">`
-      : `<span style="font-size: 1.2rem;">\uD83D\uDC55</span>`;
+      ? `<img src="${p.image}" alt="${escapeHtml(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='${CLOTHES_ICON_SVG}'">`
+      : CLOTHES_ICON_SVG;
 
     const isLowStock = p.stock <= p.minStock;
     const isOutOfStock = p.stock <= 0;
@@ -232,7 +235,7 @@ function addToCart(idOrSku) {
       name: prod.name,
       quantity: 1,
       size: prod.size || 'M',
-      color: prod.color || 'Tiêu chuẩn'
+      color: prod.color || 'Ti\u00EAu chu\u1EA9n'
     });
   }
 
@@ -330,15 +333,15 @@ function renderCart() {
     `;
 
     if (cartCountBadge) cartCountBadge.textContent = '0 s\u1EA3n ph\u1EA9m';
-    if (cartSubtotalEl) cartSubtotalEl.textContent = '0 \u0111';
-    if (cartTotalEl) cartTotalEl.textContent = '0 \u0111';
+    if (cartSubtotalEl) cartSubtotalEl.textContent = '0 VN\u0110';
+    if (cartTotalEl) cartTotalEl.textContent = '0 VN\u0110';
 
     if (checkoutBtn) {
       checkoutBtn.disabled = true;
       checkoutBtn.className = 'btn btn-disabled';
       checkoutBtn.innerHTML = `
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        <span>Thanh to\u00E1n \u00B7 0 \u0111</span>
+        <span>Thanh to\u00E1n \u00B7 0 VN\u0110</span>
       `;
     }
 
@@ -370,8 +373,8 @@ function renderCart() {
 
     const isImageValid = prod.image && (prod.image.startsWith('http://') || prod.image.startsWith('https://'));
     const imgHtml = isImageValid
-      ? `<img src="${prod.image}" alt="${escapeHtml(prod.name)}" class="cart-item-thumb" onerror="this.outerHTML='<span style=\\'font-size:1.4rem;\\'>👕</span>'">`
-      : `<div class="cart-item-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:#f1f5f9;">👕</div>`;
+      ? `<img src="${prod.image}" alt="${escapeHtml(prod.name)}" class="cart-item-thumb" onerror="this.outerHTML='<div class=\\'cart-item-thumb\\' style=\\'display:flex;align-items:center;justify-content:center;background:#eff6ff;\\'>${CLOTHES_ICON_SVG}</div>'">`
+      : `<div class="cart-item-thumb" style="display:flex;align-items:center;justify-content:center;background:#eff6ff;">${CLOTHES_ICON_SVG}</div>`;
 
     html += `
       <div class="cart-item-card ${isOverstock ? 'is-overstock' : ''}" id="cart-item-${prod.sku}">
@@ -379,16 +382,16 @@ function renderCart() {
           ${imgHtml}
           <div class="cart-item-info">
             <div class="cart-item-title" style="font-weight: 700; color: #0f172a;">${escapeHtml(prod.name)}</div>
-            <div style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">${prod.sku} · ${formatVND(prod.price)}</div>
+            <div style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">${prod.sku} \u00B7 ${formatVND(prod.price)}</div>
             
             <!-- Real Size and Color tags directly from product database -->
             <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center; font-size: 0.75rem;">
               <span class="badge" style="background: #f1f5f9; color: #334155; font-weight: 700; padding: 2px 8px;">Size: ${escapeHtml(prod.size || 'M')}</span>
-              <span class="badge" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; padding: 2px 8px;">Màu: ${escapeHtml(prod.color || 'Tiêu chuẩn')}</span>
-              <span style="color: #64748b; font-size: 0.72rem;">(Tồn: <strong style="color: #059669;">${prod.stock}</strong>)</span>
+              <span class="badge" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; padding: 2px 8px;">M\u00E0u: ${escapeHtml(prod.color || 'Ti\u00EAu chu\u1EA9n')}</span>
+              <span style="color: #64748b; font-size: 0.72rem;">(T\u1ED3n: <strong style="color: #059669;">${prod.stock}</strong>)</span>
             </div>
           </div>
-          <button type="button" class="cart-item-remove" onclick="removeFromCart(${index})" title="Xóa khỏi giỏ">
+          <button type="button" class="cart-item-remove" onclick="removeFromCart(${index})" title="X\u00F3a kh\u1ECFi gi\u1ECF">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
           </button>
         </div>

@@ -34,7 +34,7 @@ function getActiveCart() {
 
 // Format VND currency
 function formatVND(amount) {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' \u0111';
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' VNĐ';
 }
 
 // Render Order Tabs Bar
@@ -197,7 +197,7 @@ function searchProducts(query) {
         </td>
         <td style="text-align: right;">
           <button type="button" class="btn btn-primary" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 600;" 
-                  onclick="addToCart('${p.sku}')" ${isOutOfStock ? 'disabled title="H\u1EBFt h\u00E0ng"' : ''}>
+                  onclick="addToCart('${p.id || p.sku}')" ${isOutOfStock ? 'disabled title="H\u1EBFt h\u00E0ng"' : ''}>
             <span>+ Th\u00EAm</span>
           </button>
         </td>
@@ -216,21 +216,23 @@ function searchProducts(query) {
 }
 
 // Add product to active cart
-function addToCart(sku) {
-  const prod = catalogData.find(p => p.sku === sku);
+function addToCart(idOrSku) {
+  const prod = catalogData.find(p => (p.id && String(p.id) === String(idOrSku)) || p.sku === idOrSku);
   if (!prod) return;
 
   const cart = getActiveCart();
-  const existing = cart.find(item => item.sku === sku);
+  const existing = cart.find(item => (item.id && String(item.id) === String(prod.id)) || item.sku === prod.sku);
 
   if (existing) {
     existing.quantity += 1;
   } else {
     cart.push({
-      sku: sku,
+      id: prod.id,
+      sku: prod.sku,
+      name: prod.name,
       quantity: 1,
       size: prod.size || 'M',
-      color: prod.color || 'Ti\u00EAu chu\u1EA9n'
+      color: prod.color || 'Tiêu chuẩn'
     });
   }
 
@@ -352,11 +354,8 @@ function renderCart() {
   let hasOverstock = false;
   let overstockedProductName = '';
 
-  const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL', '29', '30', '31', '32', 'Freesize'];
-  const colorOptions = ['Tr\u1EAFng', '\u0110en', 'Xanh Navy', 'X\u00E1m', 'Be', 'H\u1ED3ng', 'Ti\u00EAu chu\u1EA9n'];
-
   cart.forEach((item, index) => {
-    const prod = catalogData.find(p => p.sku === item.sku);
+    const prod = catalogData.find(p => (p.id && item.id && String(p.id) === String(item.id)) || p.sku === item.sku);
     if (!prod) return;
 
     const itemSubtotal = prod.price * item.quantity;
@@ -371,22 +370,8 @@ function renderCart() {
 
     const isImageValid = prod.image && (prod.image.startsWith('http://') || prod.image.startsWith('https://'));
     const imgHtml = isImageValid
-      ? `<img src="${prod.image}" alt="${escapeHtml(prod.name)}" class="cart-item-thumb" onerror="this.outerHTML='<span style=\\'font-size:1.4rem;\\'>\uD83D\uDC55</span>'">`
-      : `<div class="cart-item-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:#f1f5f9;">\uD83D\uDC55</div>`;
-
-    // Size dropdown options
-    let sizeSelectHtml = `<select class="form-select" style="padding: 2px 6px; font-size: 0.75rem; height: 26px; width: auto;" onchange="changeCartItemVariant(${index}, 'size', this.value)">`;
-    sizeOptions.forEach(s => {
-      sizeSelectHtml += `<option value="${s}" ${item.size === s ? 'selected' : ''}>${s}</option>`;
-    });
-    sizeSelectHtml += `</select>`;
-
-    // Color dropdown options
-    let colorSelectHtml = `<select class="form-select" style="padding: 2px 6px; font-size: 0.75rem; height: 26px; width: auto;" onchange="changeCartItemVariant(${index}, 'color', this.value)">`;
-    colorOptions.forEach(c => {
-      colorSelectHtml += `<option value="${c}" ${item.color === c ? 'selected' : ''}>${c}</option>`;
-    });
-    colorSelectHtml += `</select>`;
+      ? `<img src="${prod.image}" alt="${escapeHtml(prod.name)}" class="cart-item-thumb" onerror="this.outerHTML='<span style=\\'font-size:1.4rem;\\'>👕</span>'">`
+      : `<div class="cart-item-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:#f1f5f9;">👕</div>`;
 
     html += `
       <div class="cart-item-card ${isOverstock ? 'is-overstock' : ''}" id="cart-item-${prod.sku}">
@@ -394,17 +379,16 @@ function renderCart() {
           ${imgHtml}
           <div class="cart-item-info">
             <div class="cart-item-title" style="font-weight: 700; color: #0f172a;">${escapeHtml(prod.name)}</div>
-            <div style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">${prod.sku} \u00B7 ${formatVND(prod.price)}</div>
+            <div style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">${prod.sku} · ${formatVND(prod.price)}</div>
             
-            <!-- Direct Variant Switcher inside Cart -->
-            <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center;">
-              <span style="font-size: 0.72rem; color: #64748b;">Size:</span>
-              ${sizeSelectHtml}
-              <span style="font-size: 0.72rem; color: #64748b; margin-left: 4px;">M\u00E0u:</span>
-              ${colorSelectHtml}
+            <!-- Real Size and Color tags directly from product database -->
+            <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center; font-size: 0.75rem;">
+              <span class="badge" style="background: #f1f5f9; color: #334155; font-weight: 700; padding: 2px 8px;">Size: ${escapeHtml(prod.size || 'M')}</span>
+              <span class="badge" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; padding: 2px 8px;">Màu: ${escapeHtml(prod.color || 'Tiêu chuẩn')}</span>
+              <span style="color: #64748b; font-size: 0.72rem;">(Tồn: <strong style="color: #059669;">${prod.stock}</strong>)</span>
             </div>
           </div>
-          <button type="button" class="cart-item-remove" onclick="removeFromCart(${index})" title="X\u00F3a kh\u1ECFi gi\u1ECF">
+          <button type="button" class="cart-item-remove" onclick="removeFromCart(${index})" title="Xóa khỏi giỏ">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
           </button>
         </div>
@@ -500,7 +484,7 @@ function processCheckout() {
   }
 
   // Build items parameter
-  const itemsParam = cart.map(i => i.sku + ':' + i.quantity).join(',');
+  const itemsParam = cart.map(i => (i.id || i.sku) + ':' + i.quantity).join(',');
   const params = new URLSearchParams();
   params.append('items', itemsParam);
   params.append('paymentMethod', 'Ti\u1EC1n m\u1EB7t');

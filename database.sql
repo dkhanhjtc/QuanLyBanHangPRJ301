@@ -72,7 +72,7 @@ GO
 -- Liên kết khóa ngoại: category_id -> Categories, supplier_id -> Suppliers
 CREATE TABLE Products (
     product_id INT IDENTITY(1,1) PRIMARY KEY,
-    product_code VARCHAR(30) NOT NULL UNIQUE,
+    product_code VARCHAR(30) NOT NULL,
     product_name NVARCHAR(150) NOT NULL,
     category_id INT NOT NULL CONSTRAINT FK_Products_Categories REFERENCES Categories(category_id),
     supplier_id INT NULL CONSTRAINT FK_Products_Suppliers REFERENCES Suppliers(supplier_id),
@@ -84,7 +84,8 @@ CREATE TABLE Products (
     stock_qty INT NOT NULL DEFAULT 0 CHECK (stock_qty >= 0),
     min_stock_alert INT NOT NULL DEFAULT 5,
     image_url NVARCHAR(255) NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'DISCONTINUED', 'INACTIVE'))
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'DISCONTINUED', 'INACTIVE')),
+    CONSTRAINT UQ_Products_Code_Size_Color UNIQUE (product_code, size, color)
 );
 GO
 

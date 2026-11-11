@@ -105,8 +105,8 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// Format Currency VND helper (e.g. 408000 -> 408.000 đ)
+// Format Currency VND helper (e.g. 408000 -> 408.000 VNĐ)
 function formatVND(value) {
-  return new Intl.NumberFormat('vi-VN').format(value) + ' đ';
+  return new Intl.NumberFormat('vi-VN').format(value) + ' VNĐ';
 }
 

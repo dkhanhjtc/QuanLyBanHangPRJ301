@@ -515,7 +515,7 @@
                               </c:choose>
                             </td>
                             <td style="font-weight: 600; text-align: right; color: ${item.variance < 0 ? '#ef4444' : (item.variance > 0 ? '#2563eb' : '#64748b')};">
-                              <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> đ
+                              <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> VNĐ
                             </td>
                             <td><div style="font-size: 0.825rem; color: #475569;">${not empty item.note ? item.note : 'Khớp số lượng hệ thống.'}</div></td>
                           </tr>
@@ -591,7 +591,7 @@
                               </c:choose>
                             </td>
                             <td style="font-weight: 600; text-align: right; color: ${item.variance < 0 ? '#ef4444' : (item.variance > 0 ? '#2563eb' : '#64748b')};">
-                              <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> đ
+                              <fmt:formatNumber value="${item.varianceCost}" pattern="#,###"/> VNĐ
                             </td>
                             <td>
                               <div style="font-size: 0.825rem; color: #334155;">

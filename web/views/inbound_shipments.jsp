@@ -58,7 +58,7 @@
         </div>
         <div class="card" style="padding: 18px 24px;">
           <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Tổng giá trị nhập</div>
-          <div style="font-size: 2rem; font-weight: 800; color: #16a34a;"><fmt:formatNumber value="${pendingTotalCost != null ? pendingTotalCost : 0}" pattern="#,###"/> đ</div>
+          <div style="font-size: 2rem; font-weight: 800; color: #16a34a;"><fmt:formatNumber value="${pendingTotalCost != null ? pendingTotalCost : 0}" pattern="#,###"/> VNĐ</div>
         </div>
       </div>
 
@@ -98,7 +98,7 @@
                       </td>
                       <td style="font-weight: 500; color: #334155;">${po.supplierName}</td>
                       <td style="text-align: center; font-weight: 700; color: #059669;">+${po.totalQuantity}</td>
-                      <td style="text-align: right; font-weight: 700; color: #0f172a;"><fmt:formatNumber value="${po.totalCost}" pattern="#,###"/> đ</td>
+                      <td style="text-align: right; font-weight: 700; color: #0f172a;"><fmt:formatNumber value="${po.totalCost}" pattern="#,###"/> VNĐ</td>
                       <td><span class="badge badge-gray">${po.createdByName}</span></td>
                       <td style="font-size: 0.8rem; color: #64748b;">${po.formattedDate}</td>
                       <td style="text-align: center;">

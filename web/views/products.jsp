@@ -33,7 +33,7 @@
         <div>
           <h1 style="font-size: 1.85rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">Danh mục hàng hóa</h1>
           <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
-            ${totalProductsCount != null ? totalProductsCount : 0} sản phẩm · ${totalUnits != null ? totalUnits : 0} đơn vị tồn kho · Giá trị vốn <fmt:formatNumber value="${totalInventoryCapital != null ? totalInventoryCapital : 0}" pattern="#,###"/> đ
+            ${totalProductsCount != null ? totalProductsCount : 0} sản phẩm · ${totalUnits != null ? totalUnits : 0} đơn vị tồn kho · Giá trị vốn <fmt:formatNumber value="${totalInventoryCapital != null ? totalInventoryCapital : 0}" pattern="#,###"/> VNĐ
           </div>
         </div>
         <div style="display: flex; gap: 10px;">
@@ -53,6 +53,18 @@
           </c:if>
         </div>
       </div>
+
+      <!-- Alert Notifications -->
+      <c:if test="${not empty sessionScope.toastError}">
+        <div style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.875rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>${sessionScope.toastError}</span>
+          </div>
+          <button type="button" onclick="this.parentElement.style.display='none'" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #dc2626;">&times;</button>
+        </div>
+        <c:remove var="toastError" scope="session" />
+      </c:if>
 
       <!-- PRODUCTS INVENTORY TABLE VIEW -->
       <div class="card">
@@ -129,10 +141,10 @@
                       </td>
                       <td>${p.unit != null ? p.unit : 'Cái'}</td>
                       <td style="text-align: right; font-weight: 500; color: #64748b;">
-                        <fmt:formatNumber value="${p.costPrice}" pattern="#,###"/> đ
+                        <fmt:formatNumber value="${p.costPrice}" pattern="#,###"/> VNĐ
                       </td>
                       <td style="text-align: right; font-weight: 700; color: #0f172a;">
-                        <fmt:formatNumber value="${p.price}" pattern="#,###"/> đ
+                        <fmt:formatNumber value="${p.price}" pattern="#,###"/> VNĐ
                       </td>
                       <td style="text-align: center; font-weight: 700; color: ${p.stockQuantity <= p.minStock ? '#dc2626' : '#059669'};">
                         ${p.stockQuantity}
@@ -152,10 +164,13 @@
                         <td style="text-align: right;">
                           <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
                             <button type="button" class="btn btn-outline edit-prod-btn" style="padding: 5px 12px; font-size: 0.8rem;" 
+                                    data-id="${p.id}"
                                     data-sku="${p.sku}"
                                     data-name="${p.name}"
                                     data-category="${p.category}"
                                     data-unit="${p.unit}"
+                                    data-size="${p.size}"
+                                    data-color="${p.color}"
                                     data-spec="${p.spec}"
                                     data-cost="${p.costPrice}"
                                     data-price="${p.price}"
@@ -216,6 +231,7 @@
 
     <form action="${pageContext.request.contextPath}/products" method="POST">
       <input type="hidden" name="action" value="save">
+      <input type="hidden" name="productId" id="modalProductId" value="">
       <div class="modal-body" style="padding: 22px 26px;">
         <!-- Hàng 1: Mã SKU & Tên sản phẩm -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px;">
@@ -357,9 +373,11 @@
   function openNewProductModal() {
     document.getElementById('modalProductTitle').textContent = 'Thêm hàng hóa mới';
     document.getElementById('modalProductSubtitle').textContent = 'Tạo sản phẩm mới trong kho hàng SQL Server';
+    document.getElementById('modalProductId').value = '';
     document.getElementById('modalProductSku').value = '';
     document.getElementById('modalProductSku').readOnly = false;
     document.getElementById('modalProductName').value = '';
+    document.getElementById('modalProductSize').value = 'M';
     document.getElementById('modalProductColor').value = '';
     document.getElementById('modalProductCost').value = '';
     document.getElementById('modalProductPrice').value = '';
@@ -371,10 +389,13 @@
   }
 
   function handleEditProductClick(btn) {
+    const id = btn.getAttribute('data-id') || '';
     const sku = btn.getAttribute('data-sku') || '';
     const name = btn.getAttribute('data-name') || '';
     const category = btn.getAttribute('data-category') || '';
     const unit = btn.getAttribute('data-unit') || 'Cái';
+    const size = btn.getAttribute('data-size') || 'M';
+    const color = btn.getAttribute('data-color') || '';
     const spec = btn.getAttribute('data-spec') || '';
     const cost = btn.getAttribute('data-cost') || '0';
     const price = btn.getAttribute('data-price') || '0';
@@ -382,14 +403,15 @@
     const minStock = btn.getAttribute('data-minstock') || '5';
     const img = btn.getAttribute('data-image') || '';
     const supplier = btn.getAttribute('data-supplier') || '';
-    openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img, supplier);
+    openEditModal(id, sku, name, category, unit, size, color, spec, cost, price, stock, minStock, img, supplier);
   }
 
-  function openEditModal(sku, name, category, unit, spec, cost, price, stock, minStock, img, supplier) {
+  function openEditModal(id, sku, name, category, unit, size, color, spec, cost, price, stock, minStock, img, supplier) {
     document.getElementById('modalProductTitle').textContent = 'Chỉnh sửa: ' + name;
-    document.getElementById('modalProductSubtitle').textContent = 'Mã SKU: ' + sku;
+    document.getElementById('modalProductSubtitle').textContent = 'Mã SKU: ' + sku + ' (ID #' + id + ')';
+    document.getElementById('modalProductId').value = id;
     document.getElementById('modalProductSku').value = sku;
-    document.getElementById('modalProductSku').readOnly = true;
+    document.getElementById('modalProductSku').readOnly = false;
     document.getElementById('modalProductName').value = name;
     document.getElementById('modalProductCategory').value = category;
     document.getElementById('modalProductUnit').value = unit || 'Cái';
@@ -399,26 +421,9 @@
     document.getElementById('modalProductStock').value = stock;
     document.getElementById('modalProductMinStock').value = minStock;
     document.getElementById('modalProductImageUrl').value = (img && !img.endsWith('.svg')) ? img : '';
+    document.getElementById('modalProductSize').value = size || 'M';
+    document.getElementById('modalProductColor').value = color || 'Tiêu chuẩn';
 
-    if (spec) {
-      if (spec.includes('Size S')) document.getElementById('modalProductSize').value = 'S';
-      else if (spec.includes('Size M') || spec.startsWith('M')) document.getElementById('modalProductSize').value = 'M';
-      else if (spec.includes('Size L') || spec.startsWith('L')) document.getElementById('modalProductSize').value = 'L';
-      else if (spec.includes('Size XL') || spec.startsWith('XL')) document.getElementById('modalProductSize').value = 'XL';
-      else if (spec.includes('Size XXL')) document.getElementById('modalProductSize').value = 'XXL';
-      else if (spec.includes('31')) document.getElementById('modalProductSize').value = '31';
-      else if (spec.includes('32')) document.getElementById('modalProductSize').value = '32';
-      
-      const parts = spec.split('·');
-      if (parts.length > 1) {
-        document.getElementById('modalProductColor').value = parts[1].trim();
-      } else {
-        const hyphenParts = spec.split('-');
-        if (hyphenParts.length > 1) {
-          document.getElementById('modalProductColor').value = hyphenParts[1].trim();
-        }
-      }
-    }
     document.getElementById('productEditModal').style.display = 'flex';
   }
 

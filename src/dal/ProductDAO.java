@@ -119,6 +119,39 @@ public class ProductDAO extends DBContext {
     }
 
     /**
+     * Kiểm tra xem biến thể sản phẩm (Mã/Tên cùng Size và Màu) đã tồn tại hay chưa.
+     * Cho phép trùng mã hoặc trùng tên nếu có size hoặc màu sắc khác nhau.
+     */
+    public boolean isVariantExisted(String productCode, String productName, String size, String color, Integer excludeId) {
+        String cleanSize = (size != null && !size.trim().isEmpty()) ? size.trim() : "M";
+        String cleanColor = (color != null && !color.trim().isEmpty()) ? color.trim() : "Tiêu chuẩn";
+
+        String sql = "SELECT COUNT(*) FROM Products WHERE (product_code = ? OR product_name = ?) " +
+                     "  AND LOWER(LTRIM(RTRIM(ISNULL(size, 'M')))) = LOWER(?) " +
+                     "  AND LOWER(LTRIM(RTRIM(ISNULL(color, N'Tiêu chuẩn')))) = LOWER(?) " +
+                     "  AND status != 'DISCONTINUED' ";
+        if (excludeId != null && excludeId > 0) {
+            sql += " AND product_id != " + excludeId;
+        }
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, productCode != null ? productCode.trim() : "");
+            ps.setString(2, productName != null ? productName.trim() : "");
+            ps.setString(3, cleanSize);
+            ps.setString(4, cleanColor);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
      * Thêm sản phẩm mới vào danh mục
      * @param p Đối tượng sản phẩm
      * @return true nếu thêm thành công, false nếu thất bại
@@ -267,7 +300,7 @@ public class ProductDAO extends DBContext {
         String sql = "UPDATE Products SET product_name = ?, category_id = ?, supplier_id = ?, size = ?, color = ?, " +
                      "retail_price = ?, cost_price = ?, stock_qty = ?, min_stock_alert = ?, unit = ?, " +
                      "image_url = CASE WHEN ? IS NOT NULL AND ? <> '' THEN ? ELSE image_url END " +
-                     "WHERE product_code = ? OR CAST(product_id AS VARCHAR(50)) = ?";
+                     "WHERE product_id = ? OR (product_code = ? AND ? = 0)";
 
         int catId = 1;
         if (p.getCategory() != null) {
@@ -281,6 +314,13 @@ public class ProductDAO extends DBContext {
 
         String size = p.getSize() != null && !p.getSize().trim().isEmpty() ? p.getSize() : "M";
         String color = p.getColor() != null && !p.getColor().trim().isEmpty() ? p.getColor() : "Tiêu chuẩn";
+
+        int prodId = 0;
+        try {
+            if (p.getId() != null && !p.getId().trim().isEmpty()) {
+                prodId = Integer.parseInt(p.getId().trim());
+            }
+        } catch (Exception ignored) {}
 
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -302,8 +342,9 @@ public class ProductDAO extends DBContext {
             ps.setString(11, p.getImageUrl());
             ps.setString(12, p.getImageUrl());
             ps.setString(13, p.getImageUrl());
-            ps.setString(14, p.getSku() != null ? p.getSku() : p.getId());
-            ps.setString(15, p.getId() != null ? p.getId() : p.getSku());
+            ps.setInt(14, prodId);
+            ps.setString(15, p.getSku() != null ? p.getSku() : "");
+            ps.setInt(16, prodId);
 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {

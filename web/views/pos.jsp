@@ -22,15 +22,15 @@
           id: "${p.id}",
           sku: "${p.sku}",
           name: "${p.name}",
-          spec: "${p.spec != null ? p.spec : p.unit}",
-          size: "${p.size != null ? p.size : 'M'}",
-          color: "${p.color != null ? p.color : 'Tiêu chuẩn'}",
+          spec: "${not empty p.spec ? p.spec : p.unit}",
+          size: "${not empty p.size ? p.size : 'M'}",
+          color: "${not empty p.color ? p.color : 'Tiêu chuẩn'}",
           category: "${p.category}",
           price: ${p.price},
           stock: ${p.stockQuantity},
           minStock: ${p.minStock},
-          unit: "${p.unit != null ? p.unit : 'Cái'}",
-          image: "${p.imageUrl != null ? p.imageUrl : ''}"
+          unit: "${not empty p.unit ? p.unit : 'Cái'}",
+          image: "${not empty p.imageUrl ? p.imageUrl : ''}"
         }${!loop.last ? ',' : ''}
       </c:forEach>
     ];
@@ -244,16 +244,16 @@
           <div class="cart-summary">
             <div class="summary-row">
               <span>Tạm tính</span>
-              <span id="cartSubtotal">0 đ</span>
+              <span id="cartSubtotal">0 VNĐ</span>
             </div>
             <div class="summary-row">
               <span>Giảm giá</span>
-              <span>0 đ</span>
+              <span>0 VNĐ</span>
             </div>
 
             <div class="summary-total">
               <span class="total-label">Tổng thanh toán</span>
-              <span class="total-amount" id="cartTotal">0 đ</span>
+              <span class="total-amount" id="cartTotal">0 VNĐ</span>
             </div>
 
             <!-- Overstock Alert Text -->
@@ -268,7 +268,7 @@
             <!-- Checkout Action Button -->
             <button type="button" class="btn btn-primary" id="checkoutBtn" onclick="processCheckout()" style="width: 100%; padding: 14px;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-              <span>Thanh toán · 0 đ</span>
+              <span>Thanh toán · 0 VNĐ</span>
             </button>
           </div>
         </div>
@@ -340,15 +340,15 @@
         <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;">
           <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
             <span style="color: #64748b;">Tiền mặt đầu ca:</span>
-            <strong style="color: #0f172a;"><fmt:formatNumber value="${currentShift != null ? currentShift.openingCash : 1000000}" pattern="#,###"/> đ</strong>
+            <strong style="color: #0f172a;"><fmt:formatNumber value="${currentShift != null ? currentShift.openingCash : 1000000}" pattern="#,###"/> VNĐ</strong>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
             <span style="color: #64748b;">Doanh số bán trong ca:</span>
-            <strong style="color: #2563eb;"><fmt:formatNumber value="${currentShift != null ? currentShift.totalSales : 0}" pattern="#,###"/> đ</strong>
+            <strong style="color: #2563eb;"><fmt:formatNumber value="${currentShift != null ? currentShift.totalSales : 0}" pattern="#,###"/> VNĐ</strong>
           </div>
           <div style="border-top: 1px solid #dbeafe; padding-top: 8px; margin-top: 6px; display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 700;">
             <span style="color: #1e3a8a;">Tiền mặt dự kiến tại két:</span>
-            <span style="color: #16a34a;"><fmt:formatNumber value="${(currentShift != null ? currentShift.openingCash : 1000000) + (currentShift != null ? currentShift.totalSales : 0)}" pattern="#,###"/> đ</span>
+            <span style="color: #16a34a;"><fmt:formatNumber value="${(currentShift != null ? currentShift.openingCash : 1000000) + (currentShift != null ? currentShift.totalSales : 0)}" pattern="#,###"/> VNĐ</span>
           </div>
         </div>
 
@@ -423,15 +423,15 @@
         <div class="invoice-financial-rows">
           <div class="inv-row">
             <span>Tạm tính hàng hóa:</span>
-            <span id="invSubtotal">0 đ</span>
+            <span id="invSubtotal">0 VNĐ</span>
           </div>
           <div class="inv-row">
             <span>Chiết khấu / Giảm giá:</span>
-            <span>0 đ</span>
+            <span>0 VNĐ</span>
           </div>
           <div class="inv-row-total">
             <span>TỔNG CỘNG THANH TOÁN:</span>
-            <span id="invTotalAmount">0 đ</span>
+            <span id="invTotalAmount">0 VNĐ</span>
           </div>
         </div>
 
@@ -485,11 +485,11 @@
         </div>
         <div>
           <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Doanh số ca</div>
-          <div style="font-size: 1.3rem; font-weight: 800; color: #16a34a;"><fmt:formatNumber value="${currentShift != null ? currentShift.totalSales : 0}" pattern="#,###"/> đ</div>
+          <div style="font-size: 1.3rem; font-weight: 800; color: #16a34a;"><fmt:formatNumber value="${currentShift != null ? currentShift.totalSales : 0}" pattern="#,###"/> VNĐ</div>
         </div>
         <div>
           <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 4px;">Tiền đầu ca</div>
-          <div style="font-size: 1.15rem; font-weight: 700; color: #475569;"><fmt:formatNumber value="${currentShift != null ? currentShift.openingCash : 0}" pattern="#,###"/> đ</div>
+          <div style="font-size: 1.15rem; font-weight: 700; color: #475569;"><fmt:formatNumber value="${currentShift != null ? currentShift.openingCash : 0}" pattern="#,###"/> VNĐ</div>
         </div>
       </div>
 
@@ -510,7 +510,7 @@
                   </div>
                 </div>
                 <div style="text-align: right;">
-                  <div style="font-size: 1rem; font-weight: 700; color: #0f172a;"><fmt:formatNumber value="${so.totalAmount}" pattern="#,###"/> đ</div>
+                  <div style="font-size: 1rem; font-weight: 700; color: #0f172a;"><fmt:formatNumber value="${so.totalAmount}" pattern="#,###"/> VNĐ</div>
                   <span class="badge badge-success" style="margin-top: 4px;">${so.status}</span>
                 </div>
               </div>
@@ -559,7 +559,7 @@
 </script>
 
 <!-- POS Interactive Script (Cache Busted) -->
-<script src="${pageContext.request.contextPath}/assets/js/pos.js?v=20261110_fix9" charset="UTF-8"></script>
+<script src="${pageContext.request.contextPath}/assets/js/pos.js?v=20261111_v1" charset="UTF-8"></script>
 <jsp:include page="/common/footer.jsp" />
 </body>
 </html>

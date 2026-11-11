@@ -244,7 +244,23 @@ public class ProductServlet extends HttpServlet {
                 imageUrl = sku + ".svg";
             }
 
-            Product existing = productDAO.getProductById(sku);
+            String productIdStr = request.getParameter("productId");
+            Integer editId = null;
+            if (productIdStr != null && !productIdStr.trim().isEmpty()) {
+                try { editId = Integer.parseInt(productIdStr.trim()); } catch (Exception ignored) {}
+            }
+
+            // Kiểm tra trùng lặp biến thể:
+            // Cho phép trùng tên/mã nếu size hoặc màu khác nhau; nhưng chặn nếu trùng cả mã/tên, size và màu!
+            boolean isDuplicate = productDAO.isVariantExisted(sku, name, size, color, editId);
+            if (isDuplicate) {
+                if (session != null) {
+                    session.setAttribute("toastError", "Sản phẩm \"" + name + "\" (Mã: " + sku + ") với Size " + size + " và Màu sắc " + color + " đã tồn tại trong hệ thống! Vui lòng chọn Size hoặc Màu sắc khác.");
+                }
+                response.sendRedirect(request.getContextPath() + "/products?error=duplicate_variant");
+                return;
+            }
+
             Product p = new Product(sku, sku, name, cat, price, costPrice, stock, minStock, unit, spec, size, color, imageUrl, "ACTIVE");
 
             String supplierIdStr = request.getParameter("supplierId");
@@ -265,16 +281,16 @@ public class ProductServlet extends HttpServlet {
             }
             p.setSupplierId(supplierId);
 
-            if (existing != null) {
-                p.setId(existing.getId());
+            if (editId != null && editId > 0) {
+                p.setId(String.valueOf(editId));
                 productDAO.updateProduct(p);
                 logDAO.log(new ActivityLog(0, userId, userName, "Cập nhật hàng hóa", 
-                    "Cập nhật thông tin cho sản phẩm " + name + " (" + sku + ")", 
+                    "Cập nhật thông tin cho sản phẩm " + name + " (ID: " + editId + ", SKU: " + sku + ")", 
                     request.getRemoteAddr(), userRole, sku, "Thành công", null));
             } else {
                 productDAO.addProduct(p);
                 logDAO.log(new ActivityLog(0, userId, userName, "Thêm hàng hóa mới", 
-                    "Thêm mới sản phẩm " + name + " (" + sku + ") vào kho", 
+                    "Thêm mới sản phẩm " + name + " (" + sku + ") - Size: " + size + ", Màu: " + color + " vào kho", 
                     request.getRemoteAddr(), userRole, sku, "Thành công", null));
             }
         }

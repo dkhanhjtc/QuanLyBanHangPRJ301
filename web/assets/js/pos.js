@@ -34,7 +34,7 @@ function getActiveCart() {
 
 // Format VND currency
 function formatVND(amount) {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' \u0111';
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' VN\u0110';
 }
 
 // Render Order Tabs Bar
@@ -96,6 +96,9 @@ function closeOrderTab(tabId, event) {
     renderCart();
   }
 }
+
+// Reusable clean SVG clothes icon (Pure ASCII, never corrupts across encodings)
+const CLOTHES_ICON_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z"/></svg>';
 
 // Search and render Detail Table (Nothing shown when empty to avoid clutter)
 function searchProducts(query) {
@@ -163,8 +166,8 @@ function searchProducts(query) {
   matches.forEach(p => {
     const isImageValid = p.image && (p.image.startsWith('http://') || p.image.startsWith('https://'));
     const imgHtml = isImageValid
-      ? `<img src="${p.image}" alt="${escapeHtml(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='<span style=\\'font-size:1.2rem;\\'>\uD83D\uDC55</span>'">`
-      : `<span style="font-size: 1.2rem;">\uD83D\uDC55</span>`;
+      ? `<img src="${p.image}" alt="${escapeHtml(p.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='${CLOTHES_ICON_SVG}'">`
+      : CLOTHES_ICON_SVG;
 
     const isLowStock = p.stock <= p.minStock;
     const isOutOfStock = p.stock <= 0;
@@ -197,7 +200,7 @@ function searchProducts(query) {
         </td>
         <td style="text-align: right;">
           <button type="button" class="btn btn-primary" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 600;" 
-                  onclick="addToCart('${p.sku}')" ${isOutOfStock ? 'disabled title="H\u1EBFt h\u00E0ng"' : ''}>
+                  onclick="addToCart('${p.id || p.sku}')" ${isOutOfStock ? 'disabled title="H\u1EBFt h\u00E0ng"' : ''}>
             <span>+ Th\u00EAm</span>
           </button>
         </td>
@@ -216,18 +219,20 @@ function searchProducts(query) {
 }
 
 // Add product to active cart
-function addToCart(sku) {
-  const prod = catalogData.find(p => p.sku === sku);
+function addToCart(idOrSku) {
+  const prod = catalogData.find(p => (p.id && String(p.id) === String(idOrSku)) || p.sku === idOrSku);
   if (!prod) return;
 
   const cart = getActiveCart();
-  const existing = cart.find(item => item.sku === sku);
+  const existing = cart.find(item => (item.id && String(item.id) === String(prod.id)) || item.sku === prod.sku);
 
   if (existing) {
     existing.quantity += 1;
   } else {
     cart.push({
-      sku: sku,
+      id: prod.id,
+      sku: prod.sku,
+      name: prod.name,
       quantity: 1,
       size: prod.size || 'M',
       color: prod.color || 'Ti\u00EAu chu\u1EA9n'
@@ -328,15 +333,15 @@ function renderCart() {
     `;
 
     if (cartCountBadge) cartCountBadge.textContent = '0 s\u1EA3n ph\u1EA9m';
-    if (cartSubtotalEl) cartSubtotalEl.textContent = '0 \u0111';
-    if (cartTotalEl) cartTotalEl.textContent = '0 \u0111';
+    if (cartSubtotalEl) cartSubtotalEl.textContent = '0 VN\u0110';
+    if (cartTotalEl) cartTotalEl.textContent = '0 VN\u0110';
 
     if (checkoutBtn) {
       checkoutBtn.disabled = true;
       checkoutBtn.className = 'btn btn-disabled';
       checkoutBtn.innerHTML = `
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        <span>Thanh to\u00E1n \u00B7 0 \u0111</span>
+        <span>Thanh to\u00E1n \u00B7 0 VN\u0110</span>
       `;
     }
 
@@ -352,11 +357,8 @@ function renderCart() {
   let hasOverstock = false;
   let overstockedProductName = '';
 
-  const sizeOptions = ['S', 'M', 'L', 'XL', 'XXL', '29', '30', '31', '32', 'Freesize'];
-  const colorOptions = ['Tr\u1EAFng', '\u0110en', 'Xanh Navy', 'X\u00E1m', 'Be', 'H\u1ED3ng', 'Ti\u00EAu chu\u1EA9n'];
-
   cart.forEach((item, index) => {
-    const prod = catalogData.find(p => p.sku === item.sku);
+    const prod = catalogData.find(p => (p.id && item.id && String(p.id) === String(item.id)) || p.sku === item.sku);
     if (!prod) return;
 
     const itemSubtotal = prod.price * item.quantity;
@@ -371,22 +373,8 @@ function renderCart() {
 
     const isImageValid = prod.image && (prod.image.startsWith('http://') || prod.image.startsWith('https://'));
     const imgHtml = isImageValid
-      ? `<img src="${prod.image}" alt="${escapeHtml(prod.name)}" class="cart-item-thumb" onerror="this.outerHTML='<span style=\\'font-size:1.4rem;\\'>\uD83D\uDC55</span>'">`
-      : `<div class="cart-item-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:#f1f5f9;">\uD83D\uDC55</div>`;
-
-    // Size dropdown options
-    let sizeSelectHtml = `<select class="form-select" style="padding: 2px 6px; font-size: 0.75rem; height: 26px; width: auto;" onchange="changeCartItemVariant(${index}, 'size', this.value)">`;
-    sizeOptions.forEach(s => {
-      sizeSelectHtml += `<option value="${s}" ${item.size === s ? 'selected' : ''}>${s}</option>`;
-    });
-    sizeSelectHtml += `</select>`;
-
-    // Color dropdown options
-    let colorSelectHtml = `<select class="form-select" style="padding: 2px 6px; font-size: 0.75rem; height: 26px; width: auto;" onchange="changeCartItemVariant(${index}, 'color', this.value)">`;
-    colorOptions.forEach(c => {
-      colorSelectHtml += `<option value="${c}" ${item.color === c ? 'selected' : ''}>${c}</option>`;
-    });
-    colorSelectHtml += `</select>`;
+      ? `<img src="${prod.image}" alt="${escapeHtml(prod.name)}" class="cart-item-thumb" onerror="this.outerHTML='<div class=\\'cart-item-thumb\\' style=\\'display:flex;align-items:center;justify-content:center;background:#eff6ff;\\'>${CLOTHES_ICON_SVG}</div>'">`
+      : `<div class="cart-item-thumb" style="display:flex;align-items:center;justify-content:center;background:#eff6ff;">${CLOTHES_ICON_SVG}</div>`;
 
     html += `
       <div class="cart-item-card ${isOverstock ? 'is-overstock' : ''}" id="cart-item-${prod.sku}">
@@ -396,12 +384,11 @@ function renderCart() {
             <div class="cart-item-title" style="font-weight: 700; color: #0f172a;">${escapeHtml(prod.name)}</div>
             <div style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">${prod.sku} \u00B7 ${formatVND(prod.price)}</div>
             
-            <!-- Direct Variant Switcher inside Cart -->
-            <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center;">
-              <span style="font-size: 0.72rem; color: #64748b;">Size:</span>
-              ${sizeSelectHtml}
-              <span style="font-size: 0.72rem; color: #64748b; margin-left: 4px;">M\u00E0u:</span>
-              ${colorSelectHtml}
+            <!-- Real Size and Color tags directly from product database -->
+            <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center; font-size: 0.75rem;">
+              <span class="badge" style="background: #f1f5f9; color: #334155; font-weight: 700; padding: 2px 8px;">Size: ${escapeHtml(prod.size || 'M')}</span>
+              <span class="badge" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; padding: 2px 8px;">M\u00E0u: ${escapeHtml(prod.color || 'Ti\u00EAu chu\u1EA9n')}</span>
+              <span style="color: #64748b; font-size: 0.72rem;">(T\u1ED3n: <strong style="color: #059669;">${prod.stock}</strong>)</span>
             </div>
           </div>
           <button type="button" class="cart-item-remove" onclick="removeFromCart(${index})" title="X\u00F3a kh\u1ECFi gi\u1ECF">
@@ -479,6 +466,14 @@ function renderCart() {
 
 // Process Checkout
 function processCheckout() {
+  if (!window.HAS_ACTIVE_SHIFT) {
+    alert('\u26A0\uFE0F B\u1EA1n ch\u01B0a v\u00E0o ca l\u00E0m vi\u1EC7c! Vui l\u00F2ng nh\u1EA5n "B\u1EAFt \u0111\u1EA7u ca l\u00E0m vi\u1EC7c" \u0111\u1EC3 m\u1EDF ca tr\u01B0\u1EDBc khi thanh to\u00E1n.');
+    if (typeof openStartShiftModal === 'function') {
+      openStartShiftModal();
+    }
+    return;
+  }
+
   const cart = getActiveCart();
   if (cart.length === 0) {
     alert('Gi\u1ECF h\u00E0ng \u0111ang tr\u1ED1ng!');
@@ -492,7 +487,7 @@ function processCheckout() {
   }
 
   // Build items parameter
-  const itemsParam = cart.map(i => i.sku + ':' + i.quantity).join(',');
+  const itemsParam = cart.map(i => (i.id || i.sku) + ':' + i.quantity).join(',');
   const params = new URLSearchParams();
   params.append('items', itemsParam);
   params.append('paymentMethod', 'Ti\u1EC1n m\u1EB7t');
@@ -507,33 +502,14 @@ function processCheckout() {
   .then(res => res.json())
   .then(data => {
     if (data.success) {
-      // Deduct stock from local catalogData so UI is instantaneously synchronized
-      cart.forEach(item => {
-        const p = catalogData.find(x => x.sku === item.sku);
-        if (p) p.stock = Math.max(0, p.stock - item.quantity);
-      });
-
       alert('\u2705 Thanh to\u00E1n th\u00E0nh c\u00F4ng!\nM\u00E3 \u0111\u01A1n h\u00E0ng: #' + data.orderCode + '\nT\u1ED5ng ti\u1EC1n: ' + formatVND(data.totalAmount));
-
-      // Clear active cart
-      cart.length = 0;
-
-      // If more than 1 tab, close current finished tab
-      if (orderTabs.length > 1) {
-        closeOrderTab(activeTabId);
-      } else {
-        renderOrderTabs();
-        renderCart();
-      }
-
-      // Re-trigger search to update displayed stock
-      const searchInput = document.getElementById('posSearchInput');
-      if (searchInput && searchInput.value) {
-        searchProducts(searchInput.value);
-      }
+      window.location.reload();
     } else {
       alert('\u274C L\u1ED7i thanh to\u00E1n: ' + (data.message || 'Kh\u00F4ng th\u1EC3 ho\u00E0n t\u1EA5t \u0111\u01A1n h\u00E0ng'));
-      renderCart();
+      if (btn) {
+        btn.disabled = false;
+        renderCart();
+      }
     }
   })
   .catch(err => {

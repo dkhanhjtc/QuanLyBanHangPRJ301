@@ -159,7 +159,7 @@ public class OrderDAO extends DBContext {
     public List<Order> getTodayOrders() {
         List<Order> list = new ArrayList<>();
         String sql = "SELECT o.order_id AS id, o.order_code AS code, o.staff_id AS createdBy, " +
-                "       ISNULL(u.full_name, N'Thu ngân') AS staffName, o.total_amount AS totalAmount, " +
+                "       ISNULL(u.full_name, N'Thu ngân') AS staffName, o.shift_id AS shiftId, o.total_amount AS totalAmount, " +
                 "       o.payment_method AS paymentMethod, o.status, o.created_at AS createdAt " +
                 "FROM Orders o " +
                 "LEFT JOIN Users u ON o.staff_id = u.user_id " +
@@ -172,6 +172,63 @@ public class OrderDAO extends DBContext {
 
             while (rs.next()) {
                 list.add(mapOrder(rs));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách các đơn hàng thuộc một ca làm việc cụ thể
+     */
+    public List<Order> getOrdersByShift(int shiftId) {
+        List<Order> list = new ArrayList<>();
+        String sql = "SELECT o.order_id AS id, o.order_code AS code, o.staff_id AS createdBy, " +
+                "       ISNULL(u.full_name, N'Thu ngân') AS staffName, o.shift_id AS shiftId, o.total_amount AS totalAmount, " +
+                "       o.payment_method AS paymentMethod, o.status, o.created_at AS createdAt " +
+                "FROM Orders o " +
+                "LEFT JOIN Users u ON o.staff_id = u.user_id " +
+                "WHERE o.shift_id = ? " +
+                "ORDER BY o.created_at DESC";
+
+        try (Connection con = getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, shiftId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapOrder(rs));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách các đơn hàng thuộc ca làm việc và nhân viên thực hiện cụ thể
+     */
+    public List<Order> getOrdersByShiftAndStaff(int shiftId, int staffId) {
+        List<Order> list = new ArrayList<>();
+        String sql = "SELECT o.order_id AS id, o.order_code AS code, o.staff_id AS createdBy, " +
+                "       ISNULL(u.full_name, N'Thu ngân') AS staffName, o.shift_id AS shiftId, o.total_amount AS totalAmount, " +
+                "       o.payment_method AS paymentMethod, o.status, o.created_at AS createdAt " +
+                "FROM Orders o " +
+                "LEFT JOIN Users u ON o.staff_id = u.user_id " +
+                "WHERE o.shift_id = ? AND o.staff_id = ? " +
+                "ORDER BY o.created_at DESC";
+
+        try (Connection con = getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, shiftId);
+            ps.setInt(2, staffId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapOrder(rs));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -292,6 +349,13 @@ public class OrderDAO extends DBContext {
         }
         Timestamp createdAt = rs.getTimestamp("createdAt");
 
-        return new Order(id, code, createdBy, staffName, totalAmount, paymentMethod, status, createdAt);
+        Order o = new Order(id, code, createdBy, staffName, totalAmount, paymentMethod, status, createdAt);
+        try {
+            int sId = rs.getInt("shiftId");
+            if (!rs.wasNull()) {
+                o.setShiftId(sId);
+            }
+        } catch (Exception ignored) {}
+        return o;
     }
 }

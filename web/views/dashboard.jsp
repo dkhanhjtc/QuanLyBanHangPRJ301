@@ -58,7 +58,7 @@
             <span>Doanh thu hôm nay</span>
           </div>
           <div class="kpi-value-row">
-            <fmt:formatNumber value="${kpiSummary.todayRevenue != null ? kpiSummary.todayRevenue : 0}" pattern="#,###"/> <span style="text-decoration: underline;">đ</span>
+            <fmt:formatNumber value="${kpiSummary.todayRevenue != null ? kpiSummary.todayRevenue : 0}" pattern="#,###"/> VNĐ
           </div>
           <div class="kpi-sub-row positive">
             Giao dịch thanh toán hoàn tất
@@ -72,7 +72,7 @@
             <span>Giá trị vốn kho</span>
           </div>
           <div class="kpi-value-row">
-            <fmt:formatNumber value="${kpiSummary.totalInventoryValue != null ? kpiSummary.totalInventoryValue : 0}" pattern="#,###"/> <span style="text-decoration: underline;">đ</span>
+            <fmt:formatNumber value="${kpiSummary.totalInventoryValue != null ? kpiSummary.totalInventoryValue : 0}" pattern="#,###"/> VNĐ
           </div>
           <div class="kpi-sub-row">
             &sum; Tồn &#215; Giá nhập · ${kpiSummary.totalUnits != null ? kpiSummary.totalUnits : 0} đơn vị
@@ -191,7 +191,7 @@
                       <td style="font-weight: 500; color: #0f172a;">${ord.staffName}</td>
                       <td>${ord.formattedTime}</td>
                       <td>${ord.paymentMethod}</td>
-                      <td style="font-weight: 600; color: #0f172a;"><fmt:formatNumber value="${ord.totalAmount}" pattern="#,###"/> đ</td>
+                      <td style="font-weight: 600; color: #0f172a;"><fmt:formatNumber value="${ord.totalAmount}" pattern="#,###"/> VNĐ</td>
                       <td><span class="badge badge-success">${ord.status}</span></td>
                     </tr>
                   </c:forEach>

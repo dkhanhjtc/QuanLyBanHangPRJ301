@@ -68,8 +68,13 @@ public class PosServlet extends HttpServlet {
         request.setAttribute("notifications", notificationDAO.getNotificationsForUser(currentUserId, 5));
         request.setAttribute("unreadNotificationCount", notificationDAO.getUnreadCount(currentUserId));
 
-        // 5. Lấy danh sách đơn hàng trong ngày/ca
-        List<Order> shiftOrders = orderDAO.getTodayOrders();
+        // 5. Lấy danh sách đơn hàng thuộc đúng ca làm việc hiện tại của nhân viên
+        List<Order> shiftOrders;
+        if (currentShift != null) {
+            shiftOrders = orderDAO.getOrdersByShift(currentShift.getShiftId());
+        } else {
+            shiftOrders = new ArrayList<>();
+        }
         request.setAttribute("shiftOrders", shiftOrders);
         request.setAttribute("shiftOrderCount", shiftOrders.size());
 
@@ -232,9 +237,14 @@ public class PosServlet extends HttpServlet {
             details.add(d);
         }
 
-        // Lấy ca làm việc đang mở
+        // Lấy ca làm việc đang mở của nhân viên thực hiện
         WorkShift activeShift = workShiftDAO.getCurrentShiftByStaff(userId, userName);
-        Integer shiftId = (activeShift != null) ? activeShift.getShiftId() : null;
+        if (activeShift == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            out.print("{\"success\":false,\"message\":\"Bạn chưa bắt đầu ca làm việc! Vui lòng bấm 'Bắt đầu ca làm việc' trước khi thanh toán.\"}");
+            return;
+        }
+        Integer shiftId = activeShift.getShiftId();
 
         // Tạo mã đơn hàng tự động duy nhất
         String orderCode = "BH-" + (System.currentTimeMillis() % 100000);
